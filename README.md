@@ -1,2 +1,2 @@
 # MicroMicro
-A tiny byte-syzed 65c02 microcomputer
+A tiny byte-syzed microcomputer you can build!
