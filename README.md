@@ -13,6 +13,8 @@ With these requirements in mind, the overall specs are humble but capable:
 
 The software side is still up in the air, but I'm aiming for the following features:
 * A text editor
-* An high-level programming language
+* An high-level programming language (undecided on which)
 * A built-in assembler
 * Saving and loading via the tape interface
+
+This code would likely be custom and documented to follow the article structure of the hardware side of things.
