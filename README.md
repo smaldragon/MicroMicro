@@ -11,3 +11,8 @@ With these requirements in mind, the overall specs are humble but capable:
 * Tape Interface for loading and storing data
 * Cartridge port for rom programs and peripheral expansion
 
+The software side is still up in the air, but I'm aiming for the following features:
+* A text editor
+* An high-level programming language
+* A built-in assembler
+* Saving and loading via the tape interface
