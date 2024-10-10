@@ -15,6 +15,7 @@ With these requirements in mind, the overall specs are humble but capable:
 
 *Potential Features*
 * 2 atari-style joystick ports
+* custom case made from pcbs
 
 The software side is still up in the air, but I'm aiming for the following features:
 * A text editor
