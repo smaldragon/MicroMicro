@@ -1,6 +1,7 @@
 # MicroMicro
 
-![](https://media.discordapp.net/attachments/981765485416824848/1275155935702290603/yiiipie.png?ex=6708c242&is=670770c2&hm=54e79b028233559de8f67a981f7ab9159cd7667d98175947ddda5625e0829947&)
+![PCB Render](render.png)
+![System Schematic](schematic.png)
 
 The MicroMicro (working name) is a project designed for a series I inteded(intend) to write, about how microcomputers work and how to go about developing one. It was designed to use a relatively small amount of integrated circuits (13), not use any programmable chips, microcontrollers or obselete parts, and to be a self-contained architecture that handles its own input and output (ie. not serial based).
 
