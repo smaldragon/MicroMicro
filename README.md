@@ -1,6 +1,7 @@
 # MicroMicro
 
 ![PCB Render](render.png)
+![Emulator Screenshot](screen.png)
 ![System Schematic](schematic.png)
 
 The MicroMicro (working name) is a project designed for a series I inteded(intend) to write, about how microcomputers work and how to go about developing one. It was designed to use a relatively small amount of integrated circuits (13), not use any programmable chips, microcontrollers or obselete parts, and to be a self-contained architecture that handles its own input and output (ie. not serial based).
@@ -13,9 +14,9 @@ With these requirements in mind, the overall specs are humble but capable:
 * Ultra-compact 30 Key keyboard using the "gherkin" layout
 * Tape Interface for loading and storing data
 * Cartridge port for rom programs and peripheral expansion
+* 2 atari-style joystick ports
 
 *Potential Features*
-* 2 atari-style joystick ports
 * custom case made from pcbs
 
 The software side is still up in the air, but I'm aiming for the following features:
