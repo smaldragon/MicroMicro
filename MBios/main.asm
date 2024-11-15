@@ -19,11 +19,18 @@
 .zp rF
 .zp IRQ 3
 .zp NMI 3
+.zp FSIZE 2
+.val MAXSIZE $6000
+
+.val InputSize 63
+.zp Input InputSize+1
+.zp InputL
+
 
 .org [$E000]
-	.asm stdio
-	.asm edit
-	.asm lang
+  .asm stdio
+  .asm edit
+  .asm lang
 _RESET
   lda $40; sta <NMI>        # RTI
   
@@ -43,15 +50,8 @@ _RESET
   wai
   sta <rF>
   
-  
-  # Setup Keyboard Routine
-  sei
-  lda $4C; sta <IRQ>        # JMP abs
-  lda KReadINT.lo; sta <IRQ+1>
-  lda KReadINT.hi; sta <IRQ+2>
-  cli
-ldx 0
-stz <KInpPtr>
+  jsr [STDIOINIT]
+
 _INIT
   lda string1.lo; sta <r4>
   lda string1.hi; sta <r5>
@@ -60,17 +60,44 @@ _INIT
   lda string2.lo; sta <r4>
   lda string2.hi; sta <r5>
   jsr [SOUT]
+  jsr [cHELP]
+  stz <InputL>
+  lda '>'; jsr [COUT]
+_MAIN
 __fim
-	lda 0
-	jsr [CIN]; beq (fim)
-	jsr [COUT]
-jmp [fim]
+  lda 0
+  jsr [CIN]; beq (fim)
+  
+  cmp LF; beq (lf)
+  cmp BS; beq (bs)
+  
+  pha
+  lda <InputL>; cmp InputSize; beq (fim)
+  pla;pha
+  jsr [COUT]
+  pla
+  ldx <InputL>; sta <Input+X>; inc <InputL>
+bra (fim)
+___lf
+  jsr [COUT]
+  lda  CR; jsr [COUT]
+  ldx <InputL>; lda ' '; sta <Input+X>
+  jsr [CmdRun]
+  stz <InputL>
+  lda '>'; jsr [COUT]
+bra (fim)
+___bs
+  pha
+  lda <InputL>; beq (fim)
+  dec <InputL>
+  pla
+  jsr [COUT]
+bra (fim)
 stp
 
 _SOUT
   ldy 0
 __loop
-  
   lda [<r4>+Y]; beq(break)
   phy
   jsr [COUT]
@@ -78,10 +105,125 @@ __loop
 __break
 rts
 
+_cUNKNOWN
+  lda string_unknown.lo; sta <r4>
+  lda string_unknown.hi; sta <r5>
+  jsr [SOUT]
+rts
+
+_cHELP
+  lda string_help.lo; sta <r4>
+  lda string_help.hi; sta <r5>
+  jsr [SOUT]
+  sei
+  ldx 0
+  __loop
+    
+    lda [CmdTable+X]; beq (done)
+    lda string_list.lo; sta <r4>
+    lda string_list.hi; sta <r5>
+    phx; jsr [SOUT]; plx
+    ldy 6
+    __print
+      phy; phx; lda [CmdTable+X]; jsr [COUT]; plx; ply
+    sei; inc X; dec Y; bne (print)
+    inc X; inc X
+    phx
+    #lda CR; jsr [COUT]
+    #lda LF; jsr [COUT]
+    plx
+  bra (loop)
+  __done
+  cli
+  lda CR; jsr [COUT]
+  lda LF; jsr [COUT]
+rts
+#jmp [MAIN]
+
+
+_cCLEAR
+  lda FF; jsr [COUT]
+rts
+
+_cNEW
+  stz <FSIZE+0>; stz <FSIZE+1>
+  lda string_new.lo; sta <r4>
+  lda string_new.hi; sta <r5>
+  jsr [SOUT]
+rts
+
+_cSIZE
+  sec
+  lda MAXSIZE.lo; sbc <FSIZE+0>; sta <r0>
+  lda MAXSIZE.hi; sbc <FSIZE+1>; sta <r1>
+  
+  sed
+  lda <r0>; and $0F; adc 0; sta <r2>
+  lda <r0>; lsr A; lsr A; lsr A; lsr A; tax
+  __loop
+  cpx 0; beq (next)
+    clc
+    lda <r2>; adc $16; sta <r2>
+    lda <r3>; adc 00; sta <r3>
+  dec X; bra (loop)
+  
+  __next
+  lda <r1>; and $0F; tax
+  cpx 0; beq (next)
+    clc
+    lda <r2>; adc $56; sta <r2>
+    lda <r3>; adc $02; sta <r3>
+    lda <r4>; adc $00; sta <r4>
+  dec X; bra (loop)
+  __next
+  lda <r1>; and $F0; lsr A; lsr A; lsr A; tax
+  cpx 0; beq (next)
+    clc
+    lda <r2>; adc $96; sta <r2>
+    lda <r3>; adc $40; sta <r3>
+    lda <r4>; adc $00; sta <r4>
+  dec X; bra (loop)
+  __next
+rts
+
+_CmdTable
+.byte 'help  '; .word cHELP
+.byte 'clear '; .word cCLEAR
+.byte 'new   '; .word cNEW
+.byte $00
+
+_CmdRun
+  ldx 0
+  __loop
+    ldy 0
+    lda [CmdTable+X]; bne (continue)
+      jmp [cUNKNOWN]
+    __continue
+    
+    __MatchLoop  
+      lda [CmdTable+X]
+      cmp [Input+Y]; bne (next)
+      cmp ' '; beq (matched)
+      #lda $FF; sta [$1F00+X]
+    inc X; inc Y; bra (MatchLoop)
+    __next
+      clc; txa; and %1111_1000; adc 8; tax; bra (loop)
+    __matched
+      # We Matched
+      #jmp [cHELP]
+      txa; and %1111_1000; ora %0000_0110; tax; jmp [[CmdTable+X]]
 _string1
-.byte FF,'MicroMicro 24KiB ',$00
+.byte FF,BEL, CHI,' MicroMicro ',CNO, ' 24KiB ',$00
 _string2
-.byte 'MHz',CR,LF,">"
+.byte 'MHz',CR,LF,$00
+_string_help
+.byte 'Commands:',CR,LF,$00
+_string_list
+.byte " *"
+_string_unknown
+.byte 'Unknown Command',CR,LF,$00
+_string_new
+.byte 'New File Created',CR,LF,$00
 .pad [VECTORS]
 .word NMI
 .word RESET

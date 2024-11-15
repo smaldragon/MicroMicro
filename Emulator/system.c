@@ -7,35 +7,34 @@
 #include <stdlib.h>
 
 #include "w6502.c"
-#include "psg.c"
 
 /* SDL */
 
 /* must be a power of two, decrease to allow for a lower latency, increase to reduce risk of underrun. */
 static Uint16 buffer_size = 4096;
-
 static SDL_AudioDeviceID audio_device;
 static SDL_AudioSpec audio_spec;
 static int sample_rate = 44100;
+float* audio_buf;
+int    audio_buf_i;
+float* psg_buf;
+int    psg_buf_i;
+int    psg_buf_size;
 
+int    beep;
 
 const int screen_width = 256; const int screen_height = 240;
 const uint8_t* os_keyboard;
 
-const uint32_t tick_interval = 1000/60;
+const uint32_t tick_interval = 1000/65;
 uint32_t next_time = 0;
 
 uint8_t system_ram[0x8000];
 uint8_t *system_rom;
 int     system_rom_size;
 uint8_t bank_reg;
-PSG     system_psg;
 
-
-const int system_psg_buff_size = 2000000;
-float system_psg_samples[2000000];
-int system_psg_sample_index = 0;
-
+const int CPU_CLOCK = 2000000;
 int cur_cycle = 7;
 
 int font[256][8][8];
@@ -139,6 +138,13 @@ static int setup_sdl_audio(void) {
     }
 
     buffer_size = audio_spec.samples;
+    audio_buf = (float*) malloc(buffer_size*2*sizeof(float));
+    audio_buf_i = 0;
+    
+    psg_buf_size = CPU_CLOCK / (int)audio_spec.freq;
+    psg_buf = (float*) malloc(buffer_size*2*psg_buf_size);
+    psg_buf_i = 0;
+    
     SDL_PauseAudioDevice(audio_device, 0); /* unpause audio */
     return 0;
 }
@@ -267,7 +273,7 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
                 int rom_address = result->address & 0x1FFF;
                 operand = system_rom[rom_address];
             }
-        }
+        } else { beep = !beep; }
     }
     
     return operand;
@@ -305,6 +311,7 @@ int initram()
     for (int i = 0; i < 0x7000; i++) {
         system_ram[i] = rand();
     }
+    beep = 0;
 }
 
 int loadrom(char* filename, CPU* cpu) 
@@ -345,13 +352,7 @@ static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_len
     int i;
     int16_t *s_byte_stream;
     int remain;
-    static int prev_index = 0;
-    static int wait = 2;
     
-    if (wait) {
-        wait--; return;
-    }
-
     /* zero the buffer */
     memset(byte_stream, 0, byte_stream_length);
 
@@ -364,31 +365,19 @@ static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_len
 
     /* buffer is interleaved, so get the length of 1 channel */
     remain = byte_stream_length / 2;
-    
-    /* write random samples to buffer to generate noise */
-    int u = 0;
-    //float ratio = ((float)3000000 / (float)sample_rate/2);
-    float ratio = 1.0f;
 
     for (i = 0; i < remain; i += 2) {
-        float average_l = 0;
-        float average_r = 0;
-
-        average_l += system_psg_samples[(prev_index + u) % system_psg_buff_size];
-        average_r += system_psg_samples[(prev_index + u+1) % system_psg_buff_size];
-        u+=2;
-
-        average_l = average_l*100 / ratio; 
-        average_r = average_r*100 / ratio;
+        float average_l = audio_buf[i];
+        float average_r = audio_buf[i];
         
         s_byte_stream[i] = (uint16_t)average_l;
         s_byte_stream[i+1] = (uint16_t)average_r;
     }
     
-    prev_index = (remain+prev_index)%system_psg_buff_size;
-    if (system_psg_sample_index-prev_index > remain) {
-        prev_index = system_psg_sample_index - remain;
-    }
+    //printf ("%i\n",audio_buf_i);
+    audio_buf_i = 0;
+    
+    
 }
 
 int main(int argc, char *argv[])
@@ -438,10 +427,10 @@ int main(int argc, char *argv[])
     double sbuff_reload = 67;
     
     SDL_Event event;
-    int cycles_per_line = 8000000 / 31250;
+    int cycles_per_line = CPU_CLOCK / 31250;
     while (!quit) {
         if (cycle_count >= cycles_per_line*520 || cycle_count == -1) {
-            if (!time_left()) {
+            if (time_left()) {continue;}
             render_screen(system_screen);
             
             SDL_RenderClear(renderer);
@@ -454,7 +443,7 @@ int main(int argc, char *argv[])
             //if (cycle_count > 0) cpu.IRQ = 1;
             cycle_count = 0;
             
-            while(SDL_PollEvent(&event)){
+                    while(SDL_PollEvent(&event)){
                switch (event.type) {
                 case SDL_QUIT:
                     quit = 1; break;
@@ -469,30 +458,30 @@ int main(int argc, char *argv[])
                 	break;
                }
             }
-            SDL_PumpEvents();
-            os_keyboard = SDL_GetKeyboardState(NULL);
-            }
-
+          SDL_PumpEvents();
+          os_keyboard = SDL_GetKeyboardState(NULL);
         }
         else {
         if (cycle_count > cycles_per_line*2) cpu.IRQ = 0; else cpu.IRQ = 1;
         //printf("\n\nø2 - %d\n", cur_cycle++);
-        psg_tick_82c54(&system_psg);
-        if (cycle_count%(39*192) == 0 ) {
-            psg_tick_noise(&system_psg);
-        }
         
-        if (sbuff_wait<= 0) {
-            //left
-            system_psg_sample_index = (system_psg_sample_index+1) % system_psg_buff_size;
-            system_psg_samples[system_psg_sample_index] = psg_getsample(&system_psg,1);
-            // right
-            system_psg_sample_index = (system_psg_sample_index+1) % system_psg_buff_size;
-            system_psg_samples[system_psg_sample_index] = psg_getsample(&system_psg,0);
+        if (audio_buf_i < 4096) {
+          if (psg_buf_i < psg_buf_size) {
+            psg_buf[psg_buf_i] = beep?2000.0f:0.0f;
+            psg_buf_i++;
+          } else {
+            double average;
+            for (int i = 0; i < psg_buf_size; i++) {
+                average += (double)psg_buf[i];
+            }
             
-            sbuff_wait += sbuff_reload;
-        }
-        sbuff_wait -= 1.0;
+            average /= psg_buf_size;
+            audio_buf[audio_buf_i*2] = average;
+            audio_buf[audio_buf_i*2+1] = average;
+            audio_buf_i++;
+            psg_buf_i=0;
+          }
+        } else { continue; }
         
         cpu_tick1(&cpu, &result);
         
@@ -514,6 +503,7 @@ int main(int argc, char *argv[])
         
         cycle_count += 1;
         }
+        
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
