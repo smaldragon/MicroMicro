@@ -60,6 +60,7 @@ _INIT
   lda string2.lo; sta <r4>
   lda string2.hi; sta <r5>
   jsr [SOUT]
+  
   jsr [cHELP]
   stz <InputL>
   lda '>'; jsr [COUT]
@@ -72,7 +73,7 @@ __fim
   cmp BS; beq (bs)
   
   pha
-  lda <InputL>; cmp InputSize; beq (fim)
+  lda <InputL>; cmp InputSize; beq (inputfull)
   pla;pha
   jsr [COUT]
   pla
@@ -88,12 +89,14 @@ ___lf
 bra (fim)
 ___bs
   pha
-  lda <InputL>; beq (fim)
+  lda <InputL>; beq (inputfull)
   dec <InputL>
   pla
   jsr [COUT]
 bra (fim)
-stp
+___inputfull
+  lda BEL; jsr [COUT]
+bra (fim)
 
 _SOUT
   ldy 0
@@ -186,10 +189,69 @@ _cSIZE
   __next
 rts
 
+_cEDIT
+	jsr [Edit]
+rts
+
+_cPEEK
+
+  lda 16; sta <r4>
+  
+  lda <Input+5>
+  ldx <Input+6>
+  jsr [AsciiToHex]
+  sta <r6>
+  lda <Input+7>
+  ldx <Input+8>
+  jsr [AsciiToHex]
+  sta <r5>
+  
+  #lda $80; sta <r5>
+  #lda $00; sta <r6>
+  
+  __bigloop
+  ldy $00
+  ldx $10
+  __loop
+    phx; phy; lda [<r5>+Y]
+    jsr [HexToAscii]
+    phx; jsr [COUT]
+    pla; jsr [COUT]
+    lda ' '; jsr [COUT]
+    
+    # Write Ascii repr
+  ply; inc Y; plx; dec X; bne (loop)
+  
+  ldy $00
+  ldx $10
+  __loop2
+    phx; phy
+    ldx ' '
+    lda [<r5>+Y]
+    bmi (notchar)
+    cmp $20; bcc (notchar)
+    cmp $7F; beq (notchar)
+      tax
+    __notchar
+    txa; jsr [COUT]
+  ply; inc Y; plx; dec X; bne (loop2)
+  
+  dec <r4>; beq (break)
+    clc
+    lda <r5>; adc $10; sta <r5>
+    lda <r6>; adc $00; sta <r6>
+  bra (bigloop)
+  __break
+  lda LF; jsr [COUT]
+  lda CR; jsr [COUT]
+rts
+
 _CmdTable
 .byte 'help  '; .word cHELP
 .byte 'clear '; .word cCLEAR
 .byte 'new   '; .word cNEW
+.byte 'edit  '; .word cEDIT
+.byte 'peek  '; .word cPEEK
 .byte $00
 
 _CmdRun
@@ -213,7 +275,7 @@ _CmdRun
       #jmp [cHELP]
       txa; and %1111_1000; ora %0000_0110; tax; jmp [[CmdTable+X]]
 _string1
-.byte FF,BEL, CHI,' MicroMicro ',CNO, ' 24KiB ',$00
+.byte FF,BEL, CHI,' MicroMicro ',CNO, " 24KiB "
 _string2
 .byte 'MHz',CR,LF,$00
 _string_help
@@ -221,7 +283,7 @@ _string_help
 _string_list
 .byte " *"
 _string_unknown
-.byte 'Unknown Command',CR,LF,$00
+.byte 'Unknown Command',BEL,CR,LF,$00
 _string_new
 .byte 'New File Created',CR,LF,$00
 .pad [VECTORS]

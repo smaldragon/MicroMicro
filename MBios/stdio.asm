@@ -22,6 +22,8 @@ _FONT
 .zp KInpPtr 1
 .zp KLast   5
 .zp KMod    1
+.zp KTime   1
+.zp KRepeat 1
 
 # Control Codes
 .val DEL $7F  # delete
@@ -32,6 +34,12 @@ _FONT
 .val BS  $08  # backspace
 .val CHI $10  # color highlight
 .val CNO $11  # color normal
+
+.val ALF   $01
+.val ARI   $02
+.val AUP   $03
+.val ADW   $04
+
 # ...............................
 # :11|16|21|26|31|36|41|46|51|56:
 # :12|15|22|25|32|35|42|45|52|55:
@@ -66,35 +74,37 @@ _FONT
 .val ENT LF
 .val SHF 0
 .val ALT 0
+.val HSH $23
+.val QOT $27
 
 _KMapR1
 .byte 'q','a','z','x','s','w',0,0 # normal
 .byte 'Q','A','Z','X','S','W',0,0 # shift
-.byte '1', 0 , 0 , 0 , 0 ,'2',0,0 # alt
-.byte 0,0,0,0,0,0,0,0 # shift+alt
+.byte '1','@','*','"',HSH,'2',0,0 # alt
+.byte 0,ALF,0,0,ADW,AUP,0,0 # shift+alt
 
 _KMapR2
 .byte 'e','d','c','v','f','r',0,0 # normal
 .byte 'E','D','C','V','F','R',0,0 # shift
-.byte '3', 0 , 0 , 0 , 0 ,'4',0,0 # alt
-.byte 0,0,0,0,0,0,0,0 # shift+alt
+.byte '3','$',QOT,':','%','4',0,0 # alt
+.byte 0,ARI,0,0,0,0,0,0 # shift+alt
 
 _KMapR3
-.byte 't','g',SHF,ALT,'h','y',0,0 # normal
-.byte 'T','G',SHF,ALT,'H','Y',0,0 # shift
-.byte '5', 0 , 0 , 0 , 0 ,'6',0,0 # alt
+.byte 't','g', 0 , 0 ,'h','y',0,0 # normal
+.byte 'T','G', 0 , 0 ,'H','Y',0,0 # shift
+.byte '5','&', 0 , 0 ,'-','6',0,0 # alt
 .byte 0,0,0,0,0,0,0,0 # shift+alt
 
 _KMapR4
 .byte 'u','j','b','n','k','i',0,0 # normal
 .byte 'U','J','B','N','K','I',0,0 # shift
-.byte '7', 0 , 0 , 0 , 0 ,'8',0,0 # alt
+.byte '7','+',';','!','(','8',0,0 # alt
 .byte 0,0,0,0,0,0,0,0 # shift+alt
 
 _KMapR5
 .byte 'o','l','m',SPC,ENT,'p',0,0 # normal
 .byte 'O','L','M',SPC,ENT,'P',0,0 # shift
-.byte '9', 0 , 0 , 0 ,BS ,'0',0,0 # alt
+.byte '9',')','?',SPC,BS ,'0',0,0 # alt
 .byte 0,0,0,0,0,0,0,0 # shift+alt
 
 ##
@@ -127,6 +137,7 @@ _KReadINT
   lda <r1>; pha
   lda <r2>; pha
   lda <r3>; pha
+  lda <r4>; pha; stz <r4>
   
   __modifiers
   lda [%1000_0000_1111_1011]; asl A; and %0001_1000
@@ -134,8 +145,8 @@ _KReadINT
   
   __row1
   lda <KLast+0>; sta <r3>
-  #lda [%1000_0000_1111_1110]; cmp <KLast+0>; beq (row2)
   lda [%1000_0000_1111_1110]; cmp <KLast+0>; beq (row2)
+    inc <r4>
     sta <r2>; sta <KLast+0>
     lda KMapR1.lo; sta <r0>
     lda KMapR1.hi; sta <r1>
@@ -144,6 +155,7 @@ _KReadINT
   #jmp [blink]
   lda <KLast+1>; sta <r3>
   lda [%1000_0000_1111_1101]; cmp <KLast+1>; beq (row3)
+    inc <r4>
     sta <r2>; sta <KLast+1>
     lda KMapR2.lo; sta <r0>
     lda KMapR2.hi; sta <r1>
@@ -151,6 +163,7 @@ _KReadINT
   __row3
   lda <KLast+2>; sta <r3>
   lda [%1000_0000_1111_1011]; cmp <KLast+2>; beq (row4)
+    inc <r4>
     sta <r2>; sta <KLast+2>
     lda KMapR3.lo; sta <r0>
     lda KMapR3.hi; sta <r1>
@@ -158,6 +171,7 @@ _KReadINT
   __row4
   lda <KLast+3>; sta <r3>
   lda [%1000_0000_1111_0111]; cmp <KLast+3>; beq (row5)
+    inc <r4>
     sta <r2>; sta <KLast+3>
     lda KMapR4.lo; sta <r0>
     lda KMapR4.hi; sta <r1>
@@ -165,11 +179,11 @@ _KReadINT
   __row5
   lda <KLast+4>; sta <r3>
   lda [%1000_0000_1110_1111]; cmp <KLast+4>; beq (blink)
+    inc <r4>
     sta <r2>; sta <KLast+4>
     lda KMapR5.lo; sta <r0>
     lda KMapR5.hi; sta <r1>
     jsr [KRowRead]
-
   __blink
   lda <rF>; asl A; dec A; and <CursorTime>; bne (noblink)
     inc <CursorFlip>
@@ -185,6 +199,20 @@ _KReadINT
   ___noblink
   inc <CursorTime>
   
+  lda <r4>; beq (nopress)
+    stz <KRepeat>; lda $40; sta <KTime>
+    ldx <KInpPtr>; beq (nopress)
+    lda <KInp-1+X>; beq (nopress)
+    sta <KRepeat>; inc X
+  __nopress
+  inc <KTime>; lda %0000_0111; and <KTime>; bne (norepeat)
+    lda <KRepeat>; beq (norepeat)
+    inc <KInpPtr>; ldx <KInpPtr>
+    sta <KInp+X>
+    lda <rF>; sta <KTime>
+  __norepeat
+  
+  pla; sta <r4>
   pla; sta <r3>
   pla; sta <r2>
   pla; sta <r1>
@@ -230,6 +258,8 @@ rts
 _COUT
   pha
   
+  lda <Cursor+0>; and %0011_1111; sta <Cursor+0>
+  
   lda $FE; sta <CursorTime>
   
   __blinkcheck
@@ -258,7 +288,9 @@ _COUT
 rts
 __lf
   inc <Cursor+1>
+jsr [ScrollFix]
 rts
+
 __cr
   stz <Cursor+0>
 rts
@@ -276,7 +308,7 @@ __bs
   dec <Cursor+0>; bpl (del)
     lda 63; sta <Cursor+0>
     dec <Cursor+1>; bpl (del)
-      stz <Cursor+0>; stz <Cursor+1>
+      #jsr [FixScrollDown]
 __del
   ldy 7; ldx $F0
   lda <Cursor+1>; inc A; inc A; sta <r1>
@@ -319,9 +351,12 @@ __ff
   stz <CursorFlip>
 rts
 __charf
+  pha
+  jsr [del]
+  pla
   tax
   lda <Cursor+1>; cmp 30; bcc (cont)
-    txa; pha; jsr [FixScroll]; pla
+    phx; jsr [ScrollFix]; pla
     bra (charf)
   __cont
   
@@ -360,53 +395,122 @@ rts
   sta <Cursor+0>
 rts
 
-_FixScroll
+# Scroll Function
+_ScrollFix
+  lda <Cursor+1>; cmp 30; bcs (notdone)
+    rts
+  __notdone
+  jsr [Scroll]
+_Scroll
+  lda 031; sta <r0>
+  lda $00; sta <r1>
+  lda $01; sta <r2>
+_ScrollCustom
   sei
+  
+  lda <r0>; pha
+  lda <r1>; inc A; inc A; pha
+  lda 0; jsr [COUT]
+  
+  dec <Cursor+1>
+  # Fill Zero Page Pointers
+  
+  ldy $02
+  ply; pla; sta <r0>
+  
+  __mainloop
+  lda $F0
+  ldx 63
+  __fill
+    sty <$C0+X>; dec X
+    sta <$C0+X>; dec X
+    
+    pha
+    tya; clc; adc <r2>
+    sta <$C0+X>; dec X
+    pla
+    sta <$C0+X>
+    sec; sbc $10
+  dec X; bpl (fill)
+  phy; ldy $0F
   __loop
-  lda <Cursor+1>; cmp 29; bne (notdone)
-    jmp [done]
-    __notdone
-    dec <Cursor+1>
+    lda [<$C0>+Y]; sta [<$C2>+Y]
+    lda [<$C4>+Y]; sta [<$C6>+Y]
+    lda [<$C8>+Y]; sta [<$CA>+Y]
+    lda [<$CC>+Y]; sta [<$CE>+Y]
 
-    # Unrolled Copy Loop for maximum performance
-    ldx 0
-    __copy  
-      lda [$0300+X]; sta [$0200+X] #01
-      lda [$0400+X]; sta [$0300+X] #02
-      lda [$0500+X]; sta [$0400+X] #03
-      lda [$0600+X]; sta [$0500+X] #04
-      lda [$0700+X]; sta [$0600+X] #05
-      lda [$0800+X]; sta [$0700+X] #06
-      lda [$0900+X]; sta [$0800+X] #07
-      lda [$0A00+X]; sta [$0900+X] #08
-      
-      lda [$0B00+X]; sta [$0A00+X] #09
-      lda [$0C00+X]; sta [$0B00+X] #10
-      lda [$0D00+X]; sta [$0C00+X] #11
-      lda [$0E00+X]; sta [$0D00+X] #12
-      lda [$0F00+X]; sta [$0E00+X] #13
-      lda [$1000+X]; sta [$0F00+X] #14
-      lda [$1100+X]; sta [$1000+X] #15
-      lda [$1200+X]; sta [$1100+X] #16
-      
-      lda [$1300+X]; sta [$1200+X] #17
-      lda [$1400+X]; sta [$1300+X] #18
-      lda [$1500+X]; sta [$1400+X] #19
-      lda [$1600+X]; sta [$1500+X] #20
-      lda [$1700+X]; sta [$1600+X] #21
-      lda [$1800+X]; sta [$1700+X] #22
-      lda [$1900+X]; sta [$1800+X] #23
-      lda [$1A00+X]; sta [$1900+X] #24
-      
-      lda [$1B00+X]; sta [$1A00+X] #25
-      lda [$1C00+X]; sta [$1B00+X] #26
-      lda [$1D00+X]; sta [$1C00+X] #27
-      lda [$1E00+X]; sta [$1D00+X] #28
-      lda [$1F00+X]; sta [$1E00+X] #29
-      stz [$1F00+X]
-    inc X; beq (continue); jmp [copy]
-    __continue
-  jmp [loop]
-  __done
+    lda [<$D0>+Y]; sta [<$D2>+Y]
+    lda [<$D4>+Y]; sta [<$D6>+Y]
+    lda [<$D8>+Y]; sta [<$DA>+Y]
+    lda [<$DC>+Y]; sta [<$DE>+Y]
+
+    lda [<$E0>+Y]; sta [<$E2>+Y]
+    lda [<$E4>+Y]; sta [<$E6>+Y]
+    lda [<$E8>+Y]; sta [<$EA>+Y]
+    lda [<$EC>+Y]; sta [<$EE>+Y]
+
+    lda [<$F0>+Y]; sta [<$F2>+Y]
+    lda [<$F4>+Y]; sta [<$F6>+Y]
+    lda [<$F8>+Y]; sta [<$FA>+Y]
+    lda [<$FC>+Y]; sta [<$FE>+Y]
+    
+  dec Y; bpl (loop)
+  pla; clc; adc <r2>; tay; cpy <r0>; bne (mainloop)
+  # Empty Remaining Line
+  lda 0
+  phy; ldy $0F
+  __zeroloop
+    sta [<$C0>+Y]
+    sta [<$C4>+Y]
+    sta [<$C8>+Y]
+    sta [<$CC>+Y]
+
+    sta [<$D0>+Y]
+    sta [<$D4>+Y]
+    sta [<$D8>+Y]
+    sta [<$DC>+Y]
+    
+    sta [<$E0>+Y]
+    sta [<$E4>+Y]
+    sta [<$E8>+Y]
+    sta [<$EC>+Y]
+
+    sta [<$F0>+Y]
+    sta [<$F4>+Y]
+    sta [<$F8>+Y]
+    sta [<$FC>+Y]
+    
+  dec Y; bpl (zeroloop)
+  ply
   cli
+rts
+#jmp [SlowScroll]
+
+_HexToAscii
+  # Value to convert in A
+  # Results in A and X
+  pha
+  and $0F; clc; adc $30; cmp $3A; bcc (next1)
+    clc; adc $07
+  __next1
+  tax
+  pla
+  lsr A; lsr A; lsr A; lsr A
+  and $0F; clc; adc $30; cmp $3A; bcc (next2)
+    clc; adc $07
+  __next2
+rts
+
+_AsciiToHex
+  # Converts value in A and X
+  # result in A
+  sec; sbc $30; cmp $0A; bcc (notletterLo)
+    and %01011_1111; sec; sbc 7
+  __notletterLo
+  asl A; asl A; asl A; asl A; sta <r0>
+  txa
+  sec; sbc $30; cmp $0A; bcc (notletterHi)
+    and %01011_1111; sec; sbc 7
+  __notletterHi
+  ora <r0>
 rts
