@@ -340,6 +340,28 @@ int loadrom(char* filename, CPU* cpu)
     cpu->S  = 0xFD;
 }
 
+int loadexrom(char* filename, CPU* cpu) 
+{
+	FILE *fp;
+    fp = fopen(filename, "rb");
+    
+    // get rom size
+    fseek(fp, 0L, SEEK_END);
+    expansion_rom_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if (expansion_rom_size > 128*32*1024) expansion_rom_size = 128*32*1024;
+    
+    // load the file into the rom
+    expansion_rom = realloc(expansion_rom, expansion_rom_size * sizeof(int));
+    fread(expansion_rom, sizeof(uint8_t), expansion_rom_size, fp);
+    fclose(fp);
+    
+    cpu->C = 0; cpu->IRQ = 0; cpu->NMI = 0; cpu->RESET = 1;
+    cpu->P  = 0x24;
+    cpu->S  = 0xFD;
+}
+
+
 int quit = 0;
 
 
@@ -420,7 +442,7 @@ int main(int argc, char *argv[])
     
     system_rom = realloc(system_rom, 8192 * sizeof(int));
     expansion_rom = realloc(expansion_rom, 8192 * sizeof(int));
-    //loadrom("roms/test.65x",&cpu);
+    loadrom("roms/bios.65x",&cpu);
     
     ACCESS result;
     
@@ -456,7 +478,7 @@ int main(int argc, char *argv[])
                 case SDL_DROPFILE:
                     char* filename = event.drop.file;
                     initram();
-                    loadrom(filename, &cpu);
+                    loadexrom(filename, &cpu);
                     SDL_free(filename);
                     break;
                 default:

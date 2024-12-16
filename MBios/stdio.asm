@@ -185,8 +185,9 @@ _KReadINT
     lda KMapR5.hi; sta <r1>
     jsr [KRowRead]
   __blink
-  lda <rF>; asl A; dec A; and <CursorTime>; bne (noblink)
+  lda 30; cmp <CursorTime>; bne (noblink)
     inc <CursorFlip>
+    stz <CursorTime>
     ldy 7; ldx $0F
   lda <Cursor+1>; inc A; inc A; sta <r1>
   lda <Cursor+0>; lsr A; bcs (right)
@@ -205,11 +206,11 @@ _KReadINT
     lda <KInp-1+X>; beq (nopress)
     sta <KRepeat>; inc X
   __nopress
-  inc <KTime>; lda %0000_0111; and <KTime>; bne (norepeat)
+  inc <KTime>; lda %0000_1111; and <KTime>; bne (norepeat)
     lda <KRepeat>; beq (norepeat)
     inc <KInpPtr>; ldx <KInpPtr>
     sta <KInp+X>
-    lda <rF>; sta <KTime>
+    lda $00; sta <KTime>
   __norepeat
   
   pla; sta <r4>
@@ -260,7 +261,8 @@ _COUT
   
   lda <Cursor+0>; and %0011_1111; sta <Cursor+0>
   
-  lda $FE; sta <CursorTime>
+  lda $00; sta <CursorTime>
+  
   
   __blinkcheck
   lda $01; bit <CursorFlip>; beq (notblinking)
@@ -275,6 +277,7 @@ _COUT
   dec Y; bpl (loop)
   __notblinking
   stz <CursorFlip>
+  
   pla
   cmp DEL; beq (del)
   cmp BEL; beq (bel)
@@ -285,23 +288,27 @@ _COUT
   cmp CHI; beq (chi)
   cmp CNO; beq (cno)
   cmp 32;  bcs (char)
-rts
+cli; rts
 __lf
   inc <Cursor+1>
 jsr [ScrollFix]
+cli
 rts
 
 __cr
   stz <Cursor+0>
+  cli
 rts
 
 __char
 jmp [charf]
 __chi
   lda $ff; sta <CursorColour>
+  cli
 rts
 __cno
   stz <CursorColour>
+  cli
 rts
 # DEL - Delete Character at location
 __bs
@@ -319,6 +326,7 @@ __del
   ___loop
     txa; and [<r0>+Y]; sta [<r0>+Y]
   dec Y; bpl (loop)
+  cli
 rts
 # BEL - Bell, plays a short sound
 __bel
@@ -335,6 +343,7 @@ __bel
       dec <r0>; bne (ininloop)
     dec X; bne (inloop)
   dec Y; bne (ouloop)
+  cli
 rts
 
 # FF - Form Feed, clears screen
@@ -349,8 +358,10 @@ __ff
   lda <Cursor+1>; inc A; cmp 32; bne (ouloop)
   stz <Cursor+1>
   stz <CursorFlip>
+  cli
 rts
 __charf
+  sei
   pha
   jsr [del]
   pla
@@ -377,6 +388,7 @@ __charf
     inc <Cursor+1>; lda 0
   ___noinc
   sta <Cursor+0>
+  cli
 rts
   ___left
   asl A; asl A; asl A; sta <r0>
@@ -393,6 +405,7 @@ rts
     inc <Cursor+1>; lda 0
   ___noinc
   sta <Cursor+0>
+  cli
 rts
 
 # Scroll Function
@@ -406,7 +419,7 @@ _Scroll
   lda $00; sta <r1>
   lda $01; sta <r2>
 _ScrollCustom
-  sei
+  php; sei
   
   lda <r0>; pha
   lda <r1>; inc A; inc A; pha
@@ -482,7 +495,7 @@ _ScrollCustom
     
   dec Y; bpl (zeroloop)
   ply
-  cli
+  plp
 rts
 #jmp [SlowScroll]
 

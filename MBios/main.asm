@@ -64,6 +64,17 @@ _INIT
   jsr [cHELP]
   stz <InputL>
   lda '>'; jsr [COUT]
+  
+  # Check for CART-RUN
+  lda [$C000]; cmp 'C'; bne (MAIN)
+  lda [$C001]; cmp 'A'; bne (MAIN)
+  lda [$C002]; cmp 'R'; bne (MAIN)
+  lda [$C003]; cmp 'T'; bne (MAIN)
+  lda [$C004]; cmp '-'; bne (MAIN)
+  lda [$C005]; cmp 'R'; bne (MAIN)
+  lda [$C006]; cmp 'U'; bne (MAIN)
+  lda [$C007]; cmp 'N'; bne (MAIN)
+    jmp [$C008]
 _MAIN
 __fim
   lda 0
