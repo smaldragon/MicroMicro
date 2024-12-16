@@ -34,7 +34,9 @@ uint32_t next_time = 0;
 uint8_t system_ram[0x8000];
 uint8_t *system_rom;
 int     system_rom_size;
-uint8_t bank_reg;
+
+uint8_t *expansion_rom;
+int     expansion_rom_size;
 
 
 int cur_cycle = 7;
@@ -160,124 +162,123 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
         } else {
             system_ram[result->address] = operand;
         }
-    } else if (result->address < 0xC000) {
+    } else if (result->address >= 0x8000 && result->type == WRITE) {
+      beep = !beep;
+    } else if (result->address < 0xA000) {
         // Keyboard Reading
-            operand = 0x00;
-            int row = -1; //(result->address & 0xF0) >> 4;
-            if (!(result->address & 0x01))
-              row = 0;
-            if (!(result->address & 0x02))
-              row = 1;
-            if (!(result->address & 0x04))
-              row = 2;
-            if (!(result->address & 0x08))
-              row = 3;
-            if (!(result->address & 0x10))
-              row = 4;
-            uint8_t alt = os_keyboard[SDL_SCANCODE_LALT] || os_keyboard[SDL_SCANCODE_RALT];
-        	  int alt_list[22] = {
-                SDL_SCANCODE_0,
-                SDL_SCANCODE_1,
-                SDL_SCANCODE_2,
-                SDL_SCANCODE_3,
-                SDL_SCANCODE_4,
-                SDL_SCANCODE_5,
-                SDL_SCANCODE_6,
-                SDL_SCANCODE_7,
-                SDL_SCANCODE_8,
-                SDL_SCANCODE_9,
-                
-                SDL_SCANCODE_KP_0,
-                SDL_SCANCODE_KP_1,
-                SDL_SCANCODE_KP_2,
-                SDL_SCANCODE_KP_3,
-                SDL_SCANCODE_KP_4,
-                SDL_SCANCODE_KP_5,
-                SDL_SCANCODE_KP_6,
-                SDL_SCANCODE_KP_7,
-                SDL_SCANCODE_KP_8,
-                SDL_SCANCODE_KP_9,
-                
-                SDL_SCANCODE_DELETE,
-                SDL_SCANCODE_BACKSPACE,
-            };
+        operand = 0x00;
+        int row = -1; //(result->address & 0xF0) >> 4;
+        if (!(result->address & 0x01))
+          row = 0;
+        if (!(result->address & 0x02))
+          row = 1;
+        if (!(result->address & 0x04))
+          row = 2;
+        if (!(result->address & 0x08))
+          row = 3;
+        if (!(result->address & 0x10))
+          row = 4;
+        uint8_t alt = os_keyboard[SDL_SCANCODE_LALT] || os_keyboard[SDL_SCANCODE_RALT];
+    	  int alt_list[22] = {
+            SDL_SCANCODE_0,
+            SDL_SCANCODE_1,
+            SDL_SCANCODE_2,
+            SDL_SCANCODE_3,
+            SDL_SCANCODE_4,
+            SDL_SCANCODE_5,
+            SDL_SCANCODE_6,
+            SDL_SCANCODE_7,
+            SDL_SCANCODE_8,
+            SDL_SCANCODE_9,
             
-            for (int i = 0; i < 22; i++) {
-                if (os_keyboard[alt_list[i]]) {
-                    alt = 1;
-                }
+            SDL_SCANCODE_KP_0,
+            SDL_SCANCODE_KP_1,
+            SDL_SCANCODE_KP_2,
+            SDL_SCANCODE_KP_3,
+            SDL_SCANCODE_KP_4,
+            SDL_SCANCODE_KP_5,
+            SDL_SCANCODE_KP_6,
+            SDL_SCANCODE_KP_7,
+            SDL_SCANCODE_KP_8,
+            SDL_SCANCODE_KP_9,
+            
+            SDL_SCANCODE_DELETE,
+            SDL_SCANCODE_BACKSPACE,
+        };
+        
+        for (int i = 0; i < 22; i++) {
+            if (os_keyboard[alt_list[i]]) {
+                alt = 1;
             }
-            
-            uint8_t shift = os_keyboard[SDL_SCANCODE_LSHIFT] || os_keyboard[SDL_SCANCODE_RSHIFT];
-            
-            int shift_list[1] = {
-                SDL_SCANCODE_DELETE,
-            };
-            
-            for (int i = 0; i < 1; i++) {
-                if (os_keyboard[shift_list[i]]) {
-                    shift = 1;
-                }
+        }
+        
+        uint8_t shift = os_keyboard[SDL_SCANCODE_LSHIFT] || os_keyboard[SDL_SCANCODE_RSHIFT];
+        
+        int shift_list[1] = {
+            SDL_SCANCODE_DELETE,
+        };
+        
+        for (int i = 0; i < 1; i++) {
+            if (os_keyboard[shift_list[i]]) {
+                shift = 1;
             }
-            
-            switch (row) {
-                case 0:
-                    if (os_keyboard[SDL_SCANCODE_Q]) operand        |= 0x01;
-                    if (os_keyboard[SDL_SCANCODE_A]) operand        |= 0x02;
-                    if (os_keyboard[SDL_SCANCODE_Z]) operand        |= 0x04;
-                    if (os_keyboard[SDL_SCANCODE_X]) operand        |= 0x08;
-                    if (os_keyboard[SDL_SCANCODE_S]) operand        |= 0x10;
-                    if (os_keyboard[SDL_SCANCODE_W]) operand        |= 0x20;
-                    
-                    break;
-               	case 1:
-                    if (os_keyboard[SDL_SCANCODE_E]) operand        |= 0x01;
-                    if (os_keyboard[SDL_SCANCODE_D]) operand        |= 0x02;
-                    if (os_keyboard[SDL_SCANCODE_C]) operand        |= 0x04;
-                    if (os_keyboard[SDL_SCANCODE_V]) operand        |= 0x08;
-                    if (os_keyboard[SDL_SCANCODE_F]) operand        |= 0x10;
-                    if (os_keyboard[SDL_SCANCODE_R]) operand        |= 0x20;
-                    
-                    break;
-                case 2:
-                    if (os_keyboard[SDL_SCANCODE_T]) operand        |= 0x01;
-                    if (os_keyboard[SDL_SCANCODE_G]) operand        |= 0x02;
-                    if (os_keyboard[SDL_SCANCODE_LSHIFT]|shift) operand |= 0x04;
-                    if (os_keyboard[SDL_SCANCODE_RALT]|alt) operand     |= 0x08;
-                    if (os_keyboard[SDL_SCANCODE_H]) operand        |= 0x10;
-                    if (os_keyboard[SDL_SCANCODE_Y]) operand        |= 0x20;
-                    
-                    break;
-                case 3:
-                    if (os_keyboard[SDL_SCANCODE_U]) operand        |= 0x01;
-                    if (os_keyboard[SDL_SCANCODE_J]) operand        |= 0x02;
-                    if (os_keyboard[SDL_SCANCODE_B]) operand        |= 0x04;
-                    if (os_keyboard[SDL_SCANCODE_N]) operand        |= 0x08;
-                    if (os_keyboard[SDL_SCANCODE_K]) operand        |= 0x10;
-                    if (os_keyboard[SDL_SCANCODE_I]) operand        |= 0x20;
-                    
-                    break;
-                case 4:
-                    if (os_keyboard[SDL_SCANCODE_O]) operand        |= 0x01;
-                    if (os_keyboard[SDL_SCANCODE_L]) operand        |= 0x02;
-                    if (os_keyboard[SDL_SCANCODE_M]) operand        |= 0x04;
-                    if (os_keyboard[SDL_SCANCODE_SPACE]) operand    |= 0x08;
-                    if (os_keyboard[SDL_SCANCODE_RETURN]||
-                        os_keyboard[SDL_SCANCODE_BACKSPACE]) operand|= 0x10;
-                    if (os_keyboard[SDL_SCANCODE_P]) operand        |= 0x20;
-                    
-                    break;
-            }
-            /**/
-    } else if (result->address >= 0xC000) { // ROM ACCESS
-        if (result->type == READ) {
-            if (bank_reg >= 128) {
-                operand = 0;
-            } else {
-                int rom_address = result->address & 0x1FFF;
-                operand = system_rom[rom_address];
-            }
-        } else { beep = !beep; }
+        }
+        
+        switch (row) {
+          case 0:
+              if (os_keyboard[SDL_SCANCODE_Q]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_A]) operand        |= 0x02;
+              if (os_keyboard[SDL_SCANCODE_Z]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_X]) operand        |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_S]) operand        |= 0x10;
+              if (os_keyboard[SDL_SCANCODE_W]) operand        |= 0x20;
+              
+              break;
+         	case 1:
+              if (os_keyboard[SDL_SCANCODE_E]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_D]) operand        |= 0x02;
+              if (os_keyboard[SDL_SCANCODE_C]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_V]) operand        |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_F]) operand        |= 0x10;
+              if (os_keyboard[SDL_SCANCODE_R]) operand        |= 0x20;
+              
+              break;
+          case 2:
+              if (os_keyboard[SDL_SCANCODE_T]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_G]) operand        |= 0x02;
+              if (os_keyboard[SDL_SCANCODE_LSHIFT]|shift) operand |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_RALT]|alt) operand     |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_H]) operand        |= 0x10;
+              if (os_keyboard[SDL_SCANCODE_Y]) operand        |= 0x20;
+              
+              break;
+          case 3:
+              if (os_keyboard[SDL_SCANCODE_U]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_J]) operand        |= 0x02;
+              if (os_keyboard[SDL_SCANCODE_B]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_N]) operand        |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_K]) operand        |= 0x10;
+              if (os_keyboard[SDL_SCANCODE_I]) operand        |= 0x20;
+              
+              break;
+          case 4:
+              if (os_keyboard[SDL_SCANCODE_O]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_L]) operand        |= 0x02;
+              if (os_keyboard[SDL_SCANCODE_M]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_SPACE]) operand    |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_RETURN]||
+                  os_keyboard[SDL_SCANCODE_BACKSPACE]) operand|= 0x10;
+              if (os_keyboard[SDL_SCANCODE_P]) operand        |= 0x20;
+              
+              break;
+        }
+        operand |= (beep & 1) << 6;
+    } else if (result->address >= 0xE000) { // ROM ACCESS
+        int rom_address = result->address & 0x1FFF;
+        operand = system_rom[rom_address];
+    } else if (result->address >= 0xC000) {
+        int rom_address = result->address & 0x1FFF;
+        operand = expansion_rom[rom_address];
     }
     
     return operand;
@@ -334,7 +335,6 @@ int loadrom(char* filename, CPU* cpu)
     fread(system_rom, sizeof(uint8_t), system_rom_size, fp);
     fclose(fp);
     
-    bank_reg = 0;
     cpu->C = 0; cpu->IRQ = 0; cpu->NMI = 0; cpu->RESET = 1;
     cpu->P  = 0x24;
     cpu->S  = 0xFD;
@@ -419,6 +419,7 @@ int main(int argc, char *argv[])
     initram();
     
     system_rom = realloc(system_rom, 8192 * sizeof(int));
+    expansion_rom = realloc(expansion_rom, 8192 * sizeof(int));
     //loadrom("roms/test.65x",&cpu);
     
     ACCESS result;

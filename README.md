@@ -36,10 +36,11 @@ This code would likely be custom and documented to follow the article structure 
 | Zero Page & Stack   | 512   | 0000-01FF |
 | Video Data          | 7680  | 0200-1FFF |
 | General Purpose RAM | 24576 | 2000-7FFF |
-| IO Registers        | 16384 | 8000-BFFF |
+| IO Registers        | 8192  | 8000-9FFF |
 | Expansion ROM       | 8192  | C000-DFFF |
 | Bios ROM            | 8192  | E000-FFFF |
 +---------------------+-------+-----------+ 
+* the area from A000-BFFF is an invalid bus conflict region
 ```
 
 ## Video Data Format
@@ -56,18 +57,32 @@ The state of the keyboard and joysticks can be read at the following addresses:
 +---------------------+-------+-----------------------+
 | Name                | Location  | Keys              |
 +---------------------+-----------+-------------------+
-| Keyboard Col 1      |    BFFE   | Q  A  Z  X  S  W  |
-| Keyboard Col 2      |    BFFD   | E  D  C  V  F  R  | 
-| Keyboard Col 3      |    BFFB   | T  G  sh al H  Y  |
-| Keyboard Col 4      |    BFF7   | U  J  B  N  K  I  |
-| Keyboard Col 5      |    BFEF   | O  L  M  sp en P  |
-| Joystick 1          |    9FFF   | up dw lf ri tl tr |
-| Joystick 2          |    AFFF   | up dw lf ri tl tr |
+| Keyboard Col 1      |    9FFE   | Q  A  Z  X  S  W  |
+| Keyboard Col 2      |    9FFD   | E  D  C  V  F  R  | 
+| Keyboard Col 3      |    9FFB   | T  G  sh al H  Y  |
+| Keyboard Col 4      |    9FF7   | U  J  B  N  K  I  |
+| Keyboard Col 5      |    9FEF   | O  L  M  sp en P  |
+| Joystick 1          |    8FFF   | up dw lf ri tl tr |
+| Joystick 2          |    97FF   | up dw lf ri tl tr |
 +---------------------+-----------+-------------------+ 
 ```
 
-
-
 ## Beeper
 
-The Beeper is a 1bit register that is used for both audio generation and to save programs to tape. Its state is toggled whenever a write to the ROM regions occurs `$C000-$FFFF`- Its current state can be read in bit 6 of the IO Register.
+The Beeper is a 1bit register that is used for both audio generation and to save programs to tape. Its state is toggled whenever a write to the upper half of memory occurs `$8000-$FFFF`- Its current state can be read in bit 6 of the IO Register.
+
+## IC List
+
+The design uses only 12 integrated circuits:
+
+* `65c02` - 8bit CPU
+* `62256` - 32KiB SRAM
+* `39SF010 or 28C64 or 27C256` - 8KiB Program ROM
+* `74hc10` - Tripple 3inNAND
+* `74hc14` - Hex inverter
+* `74hc32` - Quad 2inOR
+* `74hc166` - 8bit parallel-to-serial shift register
+* `74hc174` - 6bit d-type latch
+* `74hc541` - 8bit buffer
+* `74hc590`*2 - 8bit Counters
+* `74hc4520`- Dual 4bit Counters
