@@ -332,13 +332,13 @@ rts
 __bel
   # Frequency is based on rF, so the value will be constant
   .val belLength 100
-  
+  sei
   ldy belLength
   ___ouloop
     sta [$C000]
     ldx <rF>
     ___inloop
-      lda 10; sta <r0>
+      lda 30; sta <r0>
       ___ininloop
       dec <r0>; bne (ininloop)
     dec X; bne (inloop)
