@@ -51,6 +51,7 @@ _RESET
   sta <rF>
   
   jsr [STDIOINIT]
+  jsr [Edit_New]
 
 _INIT
   lda string1.lo; sta <r4>
@@ -61,6 +62,7 @@ _INIT
   lda string2.hi; sta <r5>
   jsr [SOUT]
   
+  jsr [cFILE]
   jsr [cHELP]
   stz <InputL>
   lda '>'; jsr [COUT]
@@ -155,11 +157,38 @@ rts
 #jmp [MAIN]
 
 
+_cFILE
+  lda txt1.lo; sta <r4>
+  lda txt1.hi; sta <r5>
+  jsr [SOUT]
+  
+  sec
+  lda <BotPTR+0>; sbc $2000.lo; sta <rA>
+  lda <BotPTR+1>; sbc $2000.hi
+  
+  jsr [HexToAscii]
+  phx; jsr [COUT]
+  pla; jsr [COUT]
+  
+  lda <rA>; jsr [HexToAscii]
+  phx; jsr [COUT]
+  pla; jsr [COUT]
+  
+  lda txt2.lo; sta <r4>
+  lda txt2.hi; sta <r5>
+  jsr [SOUT]
+rts
+__txt1
+.byte 'File:',CR,LF,"  "
+__txt2
+.byte ' bytes',CR,LF,$00
+
 _cCLEAR
   lda FF; jsr [COUT]
 rts
 
 _cNEW
+  jsr [Edit_New]
   stz <FSIZE+0>; stz <FSIZE+1>
   lda string_new.lo; sta <r4>
   lda string_new.hi; sta <r5>
@@ -203,6 +232,13 @@ rts
 _cEDIT
 	jsr [Edit]
 rts
+
+_cSEND
+  lda $2000.lo; sta <r0>
+  lda $2000.hi; sta <r1>
+  lda <BotPTR+0>; sta <r2>
+  lda <BotPTR+1>; sta <r3>
+  jmp [FOUT]
 
 _cPEEK
 
@@ -263,6 +299,8 @@ _CmdTable
 .byte 'new   '; .word cNEW
 .byte 'edit  '; .word cEDIT
 .byte 'peek  '; .word cPEEK
+.byte 'file  '; .word cFILE
+.byte 'save  '; .word cSEND
 .byte $00
 
 _CmdRun

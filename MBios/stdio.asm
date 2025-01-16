@@ -76,36 +76,37 @@ _FONT
 .val ALT 0
 .val HSH $23
 .val QOT $27
+.val QUIT $FF
 
 _KMapR1
-.byte 'q','a','z','x','s','w',0,0 # normal
-.byte 'Q','A','Z','X','S','W',0,0 # shift
-.byte '1','@','*','"',HSH,'2',0,0 # alt
-.byte 0,ALF,0,0,ADW,AUP,0,0 # shift+alt
+.byte 'q','a', 0 ,'z','s','w',0,0 # normal
+.byte 'Q','A', 0 ,'Z','S','W',0,0 # shift
+.byte '1','@', 0 ,'"',HSH,'2',0,0 # alt
+.byte  0 ,ALF, 0 , 0 ,ADW,AUP,0,0 # shift+alt
 
 _KMapR2
-.byte 'e','d','c','v','f','r',0,0 # normal
-.byte 'E','D','C','V','F','R',0,0 # shift
+.byte 'e','d','x','c','f','r',0,0 # normal
+.byte 'E','D','X','C','F','R',0,0 # shift
 .byte '3','$',QOT,':','%','4',0,0 # alt
-.byte 0,ARI,0,0,0,0,0,0 # shift+alt
+.byte  0 ,ARI, 0 , 0 , 0 , 0 ,0,0 # shift+alt
 
 _KMapR3
-.byte 't','g', 0 , 0 ,'h','y',0,0 # normal
-.byte 'T','G', 0 , 0 ,'H','Y',0,0 # shift
+.byte 't','g','v','b','h','y',0,0 # normal
+.byte 'T','G','V','B','H','Y',0,0 # shift
 .byte '5','&', 0 , 0 ,'-','6',0,0 # alt
-.byte 0,0,0,0,0,0,0,0 # shift+alt
+.byte  0 , 0 , 0 , 0 , 0 , 0 ,0,0 # shift+alt
 
 _KMapR4
-.byte 'u','j','b','n','k','i',0,0 # normal
-.byte 'U','J','B','N','K','I',0,0 # shift
+.byte 'u','j','n','m','k','i',0,0 # normal
+.byte 'U','J','N','M','K','I',0,0 # shift
 .byte '7','+',';','!','(','8',0,0 # alt
-.byte 0,0,0,0,0,0,0,0 # shift+alt
+.byte  0 , 0 , 0 , 0 , 0 , 0 ,0,0 # shift+alt
 
 _KMapR5
-.byte 'o','l','m',SPC,ENT,'p',0,0 # normal
-.byte 'O','L','M',SPC,ENT,'P',0,0 # shift
-.byte '9',')','?',SPC,BS ,'0',0,0 # alt
-.byte 0,0,0,0,0,0,0,0 # shift+alt
+.byte 'o','l',SPC, 0 ,ENT,'p',0,0 # normal
+.byte 'O','L',SPC, 0 ,ENT,'P',0,0 # shift
+.byte '9',')','?', 0 ,BS ,'0',0,0 # alt
+.byte  0 , 0 , 0 , 0 , 0 ,QUIT,0,0 # shift+alt
 
 ##
 _KRowRead
@@ -139,13 +140,22 @@ _KReadINT
   lda <r3>; pha
   lda <r4>; pha; stz <r4>
   
+  .val KRow1 %1001_1111_1111_1110
+  .val KRow2 %1001_1111_1111_1101
+  .val KRow3 %1001_1111_1111_1011
+  .val KRow4 %1001_1111_1111_0111
+  .val KRow5 %1001_1111_1110_1111
+  .val KJoy1 %1000_1111_1111_1111
+  .val KJoy2 %1001_0111_1111_1111
+  
   __modifiers
-  lda [%1000_0000_1111_1011]; asl A; and %0001_1000
-  sta <KMod>
+  lda [KRow1]; and %00_000100; sta <r0>
+  lda [KRow5]; and %00_001000; ora <r0>
+  asl A; sta <KMod>
   
   __row1
   lda <KLast+0>; sta <r3>
-  lda [%1000_0000_1111_1110]; cmp <KLast+0>; beq (row2)
+  lda [KRow1]; cmp <KLast+0>; beq (row2)
     inc <r4>
     sta <r2>; sta <KLast+0>
     lda KMapR1.lo; sta <r0>
@@ -154,7 +164,7 @@ _KReadINT
   __row2
   #jmp [blink]
   lda <KLast+1>; sta <r3>
-  lda [%1000_0000_1111_1101]; cmp <KLast+1>; beq (row3)
+  lda [KRow2]; cmp <KLast+1>; beq (row3)
     inc <r4>
     sta <r2>; sta <KLast+1>
     lda KMapR2.lo; sta <r0>
@@ -162,7 +172,7 @@ _KReadINT
     jsr [KRowRead]
   __row3
   lda <KLast+2>; sta <r3>
-  lda [%1000_0000_1111_1011]; cmp <KLast+2>; beq (row4)
+  lda [KRow3]; cmp <KLast+2>; beq (row4)
     inc <r4>
     sta <r2>; sta <KLast+2>
     lda KMapR3.lo; sta <r0>
@@ -170,7 +180,7 @@ _KReadINT
     jsr [KRowRead]
   __row4
   lda <KLast+3>; sta <r3>
-  lda [%1000_0000_1111_0111]; cmp <KLast+3>; beq (row5)
+  lda [KRow4]; cmp <KLast+3>; beq (row5)
     inc <r4>
     sta <r2>; sta <KLast+3>
     lda KMapR4.lo; sta <r0>
@@ -178,7 +188,7 @@ _KReadINT
     jsr [KRowRead]
   __row5
   lda <KLast+4>; sta <r3>
-  lda [%1000_0000_1110_1111]; cmp <KLast+4>; beq (blink)
+  lda [KRow5]; cmp <KLast+4>; beq (blink)
     inc <r4>
     sta <r2>; sta <KLast+4>
     lda KMapR5.lo; sta <r0>
@@ -241,8 +251,62 @@ rts
 # ----------------------------------------------------------------
 # Writes a file to audio from [[r0-r1]] to [[r2-r3]]
 _FOUT
-
-rts
+  .val FilePointer r0
+  .val FileEnd     r2
+  .val FileTemp    r4
+  .val FileTime    r5
+  sei
+  lda [$8000]; bvs (noreset)
+    sta [$8000]
+  __noreset
+  
+  lda $80; sta <FileTime>
+  # 1000
+  lda <rF>; lsr A; lsr A; lsr A
+  __shifting
+    lsr <FileTime>; lsr A
+  bcc (shifting)
+  
+  ldx <FileTime>; ldy $00
+  __waitEarly
+    dec Y; bne (waitEarly)
+  dec X; bne (waitEarly)
+  
+  
+  __checkDone
+    lda <FilePointer+0>; cmp <FileEnd+0>; bne (notDone)
+    lda <FilePointer+1>; cmp <FileEnd+1>; bne (notDone)
+  cli; rts
+  __notDone
+  #
+  ldx 8
+  ldy 0
+  lda [<FilePointer>+Y]; sta <FileTemp>
+  sta [$8000]
+  __sendLoop
+  
+  ldy <FileTime>
+  ___Dloop1
+  dec Y; bne (Dloop1)
+  
+  asl <FileTemp>; lda 0; ror A; lsr A
+  xor [$8000]; bne (noflip)
+    sta [$8000]
+  __noflip
+  dec X; bne (sendLoop)
+  
+  ldy <FileTime>
+  ___Dloop2
+  dec Y; bne (Dloop2)
+  
+  lda [$8000]; bvc (noreset)
+    sta [$8000]
+  ___noreset
+  
+  inc <FilePointer+0>; bne (noPTROverflow)
+    inc <FilePointer+1>
+  __noPTROverflow
+bra (checkDone)
 
 # ----------------------------------------------------------------
 # Character Input from keyboard

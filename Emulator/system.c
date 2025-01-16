@@ -228,8 +228,8 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
           case 0:
               if (os_keyboard[SDL_SCANCODE_Q]) operand        |= 0x01;
               if (os_keyboard[SDL_SCANCODE_A]) operand        |= 0x02;
-              if (os_keyboard[SDL_SCANCODE_Z]) operand        |= 0x04;
-              if (os_keyboard[SDL_SCANCODE_X]) operand        |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_LSHIFT]|shift) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_Z]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_S]) operand        |= 0x10;
               if (os_keyboard[SDL_SCANCODE_W]) operand        |= 0x20;
               
@@ -237,8 +237,8 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
          	case 1:
               if (os_keyboard[SDL_SCANCODE_E]) operand        |= 0x01;
               if (os_keyboard[SDL_SCANCODE_D]) operand        |= 0x02;
-              if (os_keyboard[SDL_SCANCODE_C]) operand        |= 0x04;
-              if (os_keyboard[SDL_SCANCODE_V]) operand        |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_X]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_C]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_F]) operand        |= 0x10;
               if (os_keyboard[SDL_SCANCODE_R]) operand        |= 0x20;
               
@@ -246,8 +246,8 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
           case 2:
               if (os_keyboard[SDL_SCANCODE_T]) operand        |= 0x01;
               if (os_keyboard[SDL_SCANCODE_G]) operand        |= 0x02;
-              if (os_keyboard[SDL_SCANCODE_LSHIFT]|shift) operand |= 0x04;
-              if (os_keyboard[SDL_SCANCODE_RALT]|alt) operand     |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_V]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_B]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_H]) operand        |= 0x10;
               if (os_keyboard[SDL_SCANCODE_Y]) operand        |= 0x20;
               
@@ -255,8 +255,8 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
           case 3:
               if (os_keyboard[SDL_SCANCODE_U]) operand        |= 0x01;
               if (os_keyboard[SDL_SCANCODE_J]) operand        |= 0x02;
-              if (os_keyboard[SDL_SCANCODE_B]) operand        |= 0x04;
-              if (os_keyboard[SDL_SCANCODE_N]) operand        |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_N]) operand        |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_M]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_K]) operand        |= 0x10;
               if (os_keyboard[SDL_SCANCODE_I]) operand        |= 0x20;
               
@@ -264,8 +264,8 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
           case 4:
               if (os_keyboard[SDL_SCANCODE_O]) operand        |= 0x01;
               if (os_keyboard[SDL_SCANCODE_L]) operand        |= 0x02;
-              if (os_keyboard[SDL_SCANCODE_M]) operand        |= 0x04;
-              if (os_keyboard[SDL_SCANCODE_SPACE]) operand    |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_SPACE]) operand    |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_RALT]|alt) operand |= 0x08;
               if (os_keyboard[SDL_SCANCODE_RETURN]||
                   os_keyboard[SDL_SCANCODE_BACKSPACE]) operand|= 0x10;
               if (os_keyboard[SDL_SCANCODE_P]) operand        |= 0x20;

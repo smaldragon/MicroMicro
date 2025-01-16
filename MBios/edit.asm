@@ -5,7 +5,6 @@
 .zp TopPTR 2
 _Edit
 __Init
-  jsr [Edit_New]
   lda FF; jsr [COUT]
   ldx 0; lda $FF
   ___loop
@@ -17,7 +16,9 @@ __Main
   jsr [CalcSize]
   ___poll
   jsr [CIN]; beq (poll)
-  
+  cmp QUIT; bne (continue)
+   jmp [Edit_Exit] 
+  ___continue
   cmp LF; beq (lf)
   cmp BS; beq (bs)
   cmp AUP; beq (aup)
@@ -194,3 +195,20 @@ __New
   sta [<BotPTR>+Y]
   
 rts
+
+__Exit
+  #Move to start
+  lda <TopPTR+0>; cmp MEMTOP.lo; bne (notdone)
+  lda <TopPTR+1>; cmp MEMTOP.hi; bne (notdone)
+    # We are done
+    jmp [INIT]
+  ___notdone
+  ldy 0
+  lda [<TopPTR>+Y]; sta [<BotPTR>+Y]
+  inc <TopPTR+0>; bne (notopover)
+    inc <TopPTR+1>
+  ___notopover
+  inc <BotPTR+0>; bne (nobotover)
+    inc <BotPTR+1>
+  ___nobotover
+bra (Exit)

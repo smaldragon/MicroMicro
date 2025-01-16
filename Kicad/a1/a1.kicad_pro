@@ -529,6 +529,7 @@
     "netclass_assignments": {
       "GND": "GND",
       "Net-(SW32-A)": "VBUS",
+      "Net-(SW33-A)": "VBUS",
       "VCC": "VCC"
     },
     "netclass_patterns": [
