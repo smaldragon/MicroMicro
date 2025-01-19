@@ -5,12 +5,12 @@
       "Application": "Pcbnew",
       "Version": "8.0.6"
     },
-    "CreationDate": "2024-12-27T12:36:34+00:00"
+    "CreationDate": "2025-01-18T12:54:09+00:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
-      "Name": "a0",
-      "GUID": "61302e6b-6963-4616-945f-706362585858",
+      "Name": "a1",
+      "GUID": "61312e6b-6963-4616-945f-706362585858",
       "Revision": "rev?"
     },
     "Size": {
@@ -34,47 +34,47 @@
   ],
   "FilesAttributes": [
     {
-      "Path": "a0-F_Cu.gbr",
+      "Path": "a1-F_Cu.gbr",
       "FileFunction": "Copper,L1,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "a0-B_Cu.gbr",
+      "Path": "a1-B_Cu.gbr",
       "FileFunction": "Copper,L2,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "a0-F_Paste.gbr",
+      "Path": "a1-F_Paste.gbr",
       "FileFunction": "SolderPaste,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "a0-B_Paste.gbr",
+      "Path": "a1-B_Paste.gbr",
       "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "a0-F_Silkscreen.gbr",
+      "Path": "a1-F_Silkscreen.gbr",
       "FileFunction": "Legend,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "a0-B_Silkscreen.gbr",
+      "Path": "a1-B_Silkscreen.gbr",
       "FileFunction": "Legend,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "a0-F_Mask.gbr",
+      "Path": "a1-F_Mask.gbr",
       "FileFunction": "SolderMask,Top",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "a0-B_Mask.gbr",
+      "Path": "a1-B_Mask.gbr",
       "FileFunction": "SolderMask,Bot",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "a0-Edge_Cuts.gbr",
+      "Path": "a1-Edge_Cuts.gbr",
       "FileFunction": "Profile",
       "FilePolarity": "Positive"
     }
