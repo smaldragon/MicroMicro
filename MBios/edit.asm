@@ -154,6 +154,9 @@ __CalcSize
   sec
   lda <TopPTR+0>; sbc <BotPTR+0>; sta <r0>
   lda <TopPTR+1>; sbc <BotPTR+1>; sta <r1>
+  sec
+  lda $6000.lo; sbc <r0>; sta <r0>
+  lda $6000.hi; sbc <r1>; sta <r1>
   #lda <BotPTR+0>; sta <r0>
   #lda <BotPTR+1>; sta <r1>
   
@@ -161,25 +164,11 @@ __CalcSize
   lda <Cursor+0>; pha
   lda <Cursor+1>; pha
   
-  lda 60; sta <Cursor+0>
+  lda 58; sta <Cursor+0>
   lda 29; sta <Cursor+1>
   lda CHI; jsr [COUT]
   
-  lda <r0>; pha
-  
-  lda <r1>
-  jsr [HexToAscii]; phx; pha
-  lda DEL;  jsr [COUT]
-  pla;      jsr [COUT]
-  lda DEL;  jsr [COUT]
-  pla; jsr [COUT]
-  
-  pla
-  jsr [HexToAscii]; phx; pha
-  lda DEL;  jsr [COUT]
-  pla;      jsr [COUT]
-  lda DEL;  jsr [COUT]
-  pla; jsr [COUT]
+  jsr [BinToDecPrintZ]
   
   lda CNO; jsr [COUT]
   

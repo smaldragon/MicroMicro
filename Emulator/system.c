@@ -24,6 +24,7 @@ int    psg_buf_size;
 int    beep;
 
 const int CPU_CLOCK = 2000000;
+const int BAUD_CYCLES = 104 * (CPU_CLOCK/1000000);
 
 const int screen_width = 256; const int screen_height = 240;
 const uint8_t* os_keyboard;
@@ -37,6 +38,7 @@ int     system_rom_size;
 
 uint8_t *expansion_rom;
 int     expansion_rom_size;
+int     baud_cur;
 
 
 int cur_cycle = 7;
@@ -272,7 +274,25 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
               
               break;
         }
-        operand |= (beep & 1) << 6;
+        operand |= ((!beep) & 1) << 6;
+        
+        switch ((baud_cur/208)%256) {
+            case 0:     // start bit
+            case 1:
+            // case 2
+            case 3:
+            case 4:
+            //case 5:
+            //case 6:
+            case 7:
+            //case 8:
+            //case 9    end bit
+                operand += 128;
+                break;
+            default:
+                operand += 0;
+        }
+        
     } else if (result->address >= 0xE000) { // ROM ACCESS
         int rom_address = result->address & 0x1FFF;
         operand = system_rom[rom_address];
@@ -470,7 +490,7 @@ int main(int argc, char *argv[])
             //if (cycle_count > 0) cpu.IRQ = 1;
             cycle_count = 0;
             
-                    while(SDL_PollEvent(&event)){
+            while(SDL_PollEvent(&event)){
                switch (event.type) {
                 case SDL_QUIT:
                     quit = 1; break;
@@ -481,6 +501,21 @@ int main(int argc, char *argv[])
                     loadexrom(filename, &cpu);
                     SDL_free(filename);
                     break;
+                case SDL_KEYDOWN:
+                    switch (event.key.keysym.sym) {
+                        // Warm Reset
+                        case SDLK_F5:
+                            cpu.C = 0;
+                            cpu.RESET = 1;
+                            break;
+                        // Cold Reset
+                        case SDLK_F6:
+                            system_rom = realloc(system_rom, 8192 * sizeof(int));
+                            loadrom("roms/bios.65x",&cpu);
+                            cpu.C = 0;
+                            cpu.RESET = 1;
+                            break;
+                    }
                 default:
                 	break;
                }
@@ -527,10 +562,10 @@ int main(int argc, char *argv[])
             printf("Read %X(%c) from %4X \n", operand, operand, result.address);
             }
         }
-        
+        // baud rate counting
         cycle_count += 1;
-        }
-        
+        baud_cur +=1;
+        } 
     }
     SDL_DestroyWindow(window);
     SDL_Quit();

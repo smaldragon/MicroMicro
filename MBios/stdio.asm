@@ -14,13 +14,16 @@ _FONT
 .val FONT_6 FONT+576-32
 .val FONT_7 FONT+672-32
 
+.asm fio
+.asm otla
+
 .zp Cursor  2
 .zp CursorFlip 1
 .zp CursorTime 1
 .zp CursorColour 1
-.zp KInp    7
+.zp KInp    14
 .zp KInpPtr 1
-.zp KLast   5
+.zp KLast   7
 .zp KMod    1
 .zp KTime   1
 .zp KRepeat 1
@@ -108,6 +111,19 @@ _KMapR5
 .byte '9',')','?', 0 ,BS ,'0',0,0 # alt
 .byte  0 , 0 , 0 , 0 , 0 ,QUIT,0,0 # shift+alt
 
+_KMapJ1
+.byte 'a','b','c','d','e','f',0,0 # normal
+.byte 'a','b','c','d','e','f',0,0 # normal
+.byte 'a','b','c','d','e','f',0,0 # normal
+.byte 'a','b','c','d','e','f',0,0 # normal
+
+
+_KMapJ2
+.byte 'A','B','C','D','E','F',0,0 # normal
+.byte 'A','B','C','D','E','F',0,0 # normal
+.byte 'A','B','C','D','E','F',0,0 # normal
+.byte 'A','B','C','D','E','F',0,0 # normal
+
 ##
 _KRowRead
   # r01 INPUT: holds pointer to the row's keymap
@@ -188,11 +204,27 @@ _KReadINT
     jsr [KRowRead]
   __row5
   lda <KLast+4>; sta <r3>
-  lda [KRow5]; cmp <KLast+4>; beq (blink)
+  lda [KRow5]; cmp <KLast+4>; beq (row6)
     inc <r4>
     sta <r2>; sta <KLast+4>
     lda KMapR5.lo; sta <r0>
     lda KMapR5.hi; sta <r1>
+    jsr [KRowRead]
+  __row6
+  lda <KLast+4>; sta <r3>
+  lda [KJoy1]; cmp <KLast+5>; beq (row7)
+    inc <r4>
+    sta <r2>; sta <KLast+5>
+    lda KMapJ1.lo; sta <r0>
+    lda KMapJ2.hi; sta <r1>
+    jsr [KRowRead]
+  __row7
+  lda <KLast+4>; sta <r3>
+  lda [KJoy2]; cmp <KLast+6>; beq (blink)
+    inc <r4>
+    sta <r2>; sta <KLast+6>
+    lda KMapJ2.lo; sta <r0>
+    lda KMapJ2.hi; sta <r1>
     jsr [KRowRead]
   __blink
   lda 30; cmp <CursorTime>; bne (noblink)
@@ -243,11 +275,66 @@ _STDIOINIT
   cli
 rts
 
+
 # ----------------------------------------------------------------
 # Reads a file from audio into [[r0-r1]], max size [[r2-r3]]
 _FIN
-  
+.padpage $EA
+_FileIN
+    # 208 cycles per
+    sei
+    
+    lda <rF>; asl A; dec A; dec A; sta <FileTime>
+    # WAIT
+    __LOOP
+    sei
+    stz <FileTemp>
+    __waitone
+    lda [$8000]; bmi (waitone)
+    __waitzero
+    lda [$8000]; bpl (waitzero)
+    
+    # 3 4 4
+    lda $FF; xor [$0300]; sta [$0300]
+    
+    __readbyte
+   
+    # one and half wait for alignment
+    ldy <FileTime>
+    __wait1
+    lda [$0000]; lda [$0000]; lda [$0000]; lda [$0000]
+    dec Y; bne (wait1) # 5 cycles
+    #lda <FileTime>;  lsr A; dec A; tay
+    
+    ldx 8
+    __readbit
+        # 5 cycles
+        nop; lda <$0000>
+        # 14 cycles
+        #     4         2       2         6           
+        
+        lda [$8000]; xor $FF; rol A; ror [FileTemp]
+        #     3
+        ldy <FileTime>
+        
+        
+        __waitbit                   # 13 cycles per loop
+        lda [$0000]; lda [$0000]
+        dec Y; bne (waitbit)
+    #  2        3
+    dec X; bne (readbit)
+    
+    lda <$0000>; lda <$0000>
+    # check for end bit
+    lda [$8000]; bpl (validbyte)
+    #    jmp [FileIN]
+    __validbyte
+    
+    lda <FileTemp>; sta [$0303]; jsr [COUT]
+jmp [LOOP]
 rts
+
+.padpage $EA
 # ----------------------------------------------------------------
 # Writes a file to audio from [[r0-r1]] to [[r2-r3]]
 _FOUT
@@ -255,24 +342,27 @@ _FOUT
   .val FileEnd     r2
   .val FileTemp    r4
   .val FileTime    r5
+  .val BeepState   r6
+  lda BEL; jsr [COUT]
+  lda BEL; jsr [COUT]
+  
   sei
-  lda [$8000]; bvs (noreset)
+  bit [$8000]; bvc (noreset)
     sta [$8000]
   __noreset
   
-  lda $80; sta <FileTime>
-  # 1000
-  lda <rF>; lsr A; lsr A; lsr A
-  __shifting
-    lsr <FileTime>; lsr A
-  bcc (shifting)
+  lda <rF>; asl A; dec A; dec A; dec A; sta <FileTime>
   
-  ldx <FileTime>; ldy $00
+  ldy <FileTime>
+  ldx 0
+  
+  # Halt for a bit before sending data
   __waitEarly
+    lda [$0000]; lda [$0000]
     dec Y; bne (waitEarly)
-  dec X; bne (waitEarly)
+  ldy <FileTime>; dec X; bne (waitEarly)
   
-  
+  # main loop
   __checkDone
     lda <FilePointer+0>; cmp <FileEnd+0>; bne (notDone)
     lda <FilePointer+1>; cmp <FileEnd+1>; bne (notDone)
@@ -282,31 +372,55 @@ _FOUT
   ldx 8
   ldy 0
   lda [<FilePointer>+Y]; sta <FileTemp>
+  stz <BeepState>
   sta [$8000]
-  __sendLoop
   
-  ldy <FileTime>
-  ___Dloop1
-  dec Y; bne (Dloop1)
   
-  asl <FileTemp>; lda 0; ror A; lsr A
-  xor [$8000]; bne (noflip)
-    sta [$8000]
-  __noflip
-  dec X; bne (sendLoop)
+  __sendbit
+    # 184 cycles
+    ldy <FileTime>
+    ___waitbit                   # 13 cycles per loop
+    lda [$0000]; lda [$0000]
+    dec Y; bne (waitbit)
+    
+    #      5         2      2      2  | 11 cycles
+    lsr <FileTemp>; lda 0; rol A; tay
+    #      3            2or3
+    xor <BeepState>; beq (noflip)
+        sty <BeepState>
+        sta [$8000]
+        nop;nop;nop;sty<BeepState>
+    dec X; bne (sendbit)
+    bra (DoneSending)
+    ___noflip
+        nop;nop;nop;nop
+        nop;nop;lda <$00>
+    #  2        3
+    dec X; bne (sendbit)
+  __DoneSending
   
-  ldy <FileTime>
+  ldy <FileTime>; inc Y
   ___Dloop2
+  lda [$0000]; lda [$0000]
   dec Y; bne (Dloop2)
   
-  lda [$8000]; bvc (noreset)
+  lda <BeepState>; bne (BeepIsReset)
     sta [$8000]
-  ___noreset
+  ___BeepIsReset
+  
+  ldy $00
+  ___Dloop3
+  ldx $00
+  ___inner
+  dec X; bne (inner)
+  lda [$0000];lda [$0000];lda [$0000];lda [$0000]
+  lda [$0000];lda [$0000];lda [$0000];lda [$0000]
+  dec Y; bne (Dloop3)
   
   inc <FilePointer+0>; bne (noPTROverflow)
     inc <FilePointer+1>
   __noPTROverflow
-bra (checkDone)
+jmp [checkDone]
 
 # ----------------------------------------------------------------
 # Character Input from keyboard
@@ -402,7 +516,7 @@ __bel
     sta [$C000]
     ldx <rF>
     ___inloop
-      lda 30; sta <r0>
+      lda 32; sta <r0>
       ___ininloop
       dec <r0>; bne (ininloop)
     dec X; bne (inloop)
@@ -591,3 +705,49 @@ _AsciiToHex
   __notletterHi
   ora <r0>
 rts
+
+_BinToDecPrintZ
+    jsr [BinToDec]
+    ldx 0
+    __print
+    lda <r2+X>; phx; jsr [COUT]; plx
+    inc X; cpx 5; bne (print)
+rts
+_BinToDecPrint
+    jsr [BinToDec]
+    ldx 0
+    __findstart
+    lda <r2+X>; cmp '0'; bne (print)
+    inc X; cpx 4; bne (findstart)
+    __print
+    lda <r2+X>; phx; jsr [COUT]; plx
+    inc X; cpx 5; bne (print)
+rts
+_BinToDec
+    # Input: R0-R1
+    # Output: R2~R6
+    ldy 0
+    ldx 0
+    lda '0'
+    sta <r2+0>; sta <r2+1>; sta <r2+2>; sta <r2+3>; sta <r2+4>
+    
+    __loop
+        lda <r1>; cmp [tableHi+X]
+            bcc (break)
+            bne (continue)
+        lda <r0>; cmp [tableLo+X]
+            bcc (break)
+        __continue
+        inc <r2+X>
+        sec
+        lda <r0>; sbc [tableLo+X]; sta <r0>
+        lda <r1>; sbc [tableHi+X]; sta <r1>
+    bra (loop)
+    __break
+    inc Y; inc Y; inc Y
+    inc X; cpx 5;bne (loop)
+rts
+__tableHi
+.byte 10000.hi, 1000.hi, 100.hi, 10.hi, 1.hi
+__tableLo
+.byte 10000.lo, 1000.lo, 100.lo, 10.lo, 1.lo

@@ -17,9 +17,11 @@
 .zp rD
 .zp rE
 .zp rF
+.zp RUNCODE 4
 .zp IRQ 3
 .zp NMI 3
 .zp FSIZE 2
+.zp FNAME 8
 .val MAXSIZE $6000
 
 .val InputSize 63
@@ -51,8 +53,21 @@ _RESET
   sta <rF>
   
   jsr [STDIOINIT]
+  
+  lda <RUNCODE+0>;cmp 'R'; bne (cold)
+  lda <RUNCODE+1>;cmp 'u'; bne (cold)
+  lda <RUNCODE+2>;cmp 'n'; bne (cold)
+  lda <RUNCODE+3>;cmp '!'; bne (cold)
+    bra (warm)
+  __cold
   jsr [Edit_New]
-
+  stz <FNAME>
+  __warm
+  lda 'R'; sta <RUNCODE+0>
+  lda 'u'; sta <RUNCODE+1>
+  lda 'n'; sta <RUNCODE+2>
+  lda '!'; sta <RUNCODE+3>
+  
 _INIT
   lda string1.lo; sta <r4>
   lda string1.hi; sta <r5>
@@ -162,18 +177,19 @@ _cFILE
   lda txt1.hi; sta <r5>
   jsr [SOUT]
   
+  lda <FNAME>; beq (unnamedfile)
+  lda FNAME.lo; sta <r4>; stz <r5>
+  jsr [SOUT]
+  bra (continue)
+  __unnamedfile
+  lda txtun.lo; sta <r4>; lda txtun.hi; sta <r5>
+  jsr [SOUT]
+  __continue
+  lda ' '; jsr [COUT]
   sec
-  lda <BotPTR+0>; sbc $2000.lo; sta <rA>
-  lda <BotPTR+1>; sbc $2000.hi
-  
-  jsr [HexToAscii]
-  phx; jsr [COUT]
-  pla; jsr [COUT]
-  
-  lda <rA>; jsr [HexToAscii]
-  phx; jsr [COUT]
-  pla; jsr [COUT]
-  
+  lda <BotPTR+0>; sbc $2000.lo; sta <r0>
+  lda <BotPTR+1>; sbc $2000.hi; sta <r1>
+  jsr [BinToDecPrint]
   lda txt2.lo; sta <r4>
   lda txt2.hi; sta <r5>
   jsr [SOUT]
@@ -182,6 +198,8 @@ __txt1
 .byte 'File:',CR,LF,"  "
 __txt2
 .byte ' bytes',CR,LF,$00
+__txtun
+.byte "<untitled>"
 
 _cCLEAR
   lda FF; jsr [COUT]
@@ -239,6 +257,9 @@ _cSEND
   lda <BotPTR+0>; sta <r2>
   lda <BotPTR+1>; sta <r3>
   jmp [FOUT]
+  
+_cLOAD
+jmp [FileIN]
 
 _cPEEK
 
@@ -296,11 +317,12 @@ rts
 _CmdTable
 .byte 'help  '; .word cHELP
 .byte 'clear '; .word cCLEAR
+.byte 'file  '; .word cFILE
 .byte 'new   '; .word cNEW
 .byte 'edit  '; .word cEDIT
 .byte 'peek  '; .word cPEEK
-.byte 'file  '; .word cFILE
-.byte 'save  '; .word cSEND
+.byte 'save  '; .word OTLA_OUT
+.byte 'load  '; .word cLOAD
 .byte $00
 
 _CmdRun
@@ -326,7 +348,7 @@ _CmdRun
 _string1
 .byte FF,BEL, CHI,' MicroMicro ',CNO, " 24KiB "
 _string2
-.byte 'MHz',CR,LF,$00
+.byte 'MHz',CR,LF,CR,LF,$00
 _string_help
 .byte 'Commands:',CR,LF,$00
 _string_list
