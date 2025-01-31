@@ -14,7 +14,6 @@ _FONT
 .val FONT_6 FONT+576-32
 .val FONT_7 FONT+672-32
 
-.asm fio
 .asm otla
 
 .zp Cursor  2
@@ -84,39 +83,38 @@ _FONT
 _KMapR1
 .byte 'q','a', 0 ,'z','s','w',0,0 # normal
 .byte 'Q','A', 0 ,'Z','S','W',0,0 # shift
-.byte '1','@', 0 ,'"',HSH,'2',0,0 # alt
-.byte  0 ,ALF, 0 , 0 ,ADW,AUP,0,0 # shift+alt
+.byte '1','@', 0 ,'*',HSH,'2',0,0 # alt
+.byte QUIT,ALF,0 ,'~',ADW,AUP,0,0 # shift+alt
 
 _KMapR2
 .byte 'e','d','x','c','f','r',0,0 # normal
 .byte 'E','D','X','C','F','R',0,0 # shift
-.byte '3','$',QOT,':','%','4',0,0 # alt
-.byte  0 ,ARI, 0 , 0 , 0 , 0 ,0,0 # shift+alt
+.byte '3','$',$22,QOT,'%','4',0,0 # alt
+.byte '^',ARI, 0 , 0 ,'{','|',0,0 # shift+alt
 
 _KMapR3
 .byte 't','g','v','b','h','y',0,0 # normal
 .byte 'T','G','V','B','H','Y',0,0 # shift
-.byte '5','&', 0 , 0 ,'-','6',0,0 # alt
-.byte  0 , 0 , 0 , 0 , 0 , 0 ,0,0 # shift+alt
+.byte '5','&',',','.','-','6',0,0 # alt
+.byte '_','}',';',':','<', 0 ,0,0 # shift+alt
 
 _KMapR4
 .byte 'u','j','n','m','k','i',0,0 # normal
 .byte 'U','J','N','M','K','I',0,0 # shift
-.byte '7','+',';','!','(','8',0,0 # alt
-.byte  0 , 0 , 0 , 0 , 0 , 0 ,0,0 # shift+alt
+.byte '7','+','?','!','(','8',0,0 # alt
+.byte  0 ,'>','/','\','[', 0 ,0,0 # shift+alt
 
 _KMapR5
 .byte 'o','l',SPC, 0 ,ENT,'p',0,0 # normal
 .byte 'O','L',SPC, 0 ,ENT,'P',0,0 # shift
-.byte '9',')','?', 0 ,BS ,'0',0,0 # alt
-.byte  0 , 0 , 0 , 0 , 0 ,QUIT,0,0 # shift+alt
+.byte '9',')', 0 , 0 ,BS ,'0',0,0 # alt
+.byte  0 ,']', 0 , 0 , 0 , 0 ,0,0 # shift+alt
 
 _KMapJ1
 .byte 'a','b','c','d','e','f',0,0 # normal
 .byte 'a','b','c','d','e','f',0,0 # normal
 .byte 'a','b','c','d','e','f',0,0 # normal
 .byte 'a','b','c','d','e','f',0,0 # normal
-
 
 _KMapJ2
 .byte 'A','B','C','D','E','F',0,0 # normal
@@ -431,7 +429,28 @@ _CIN
   lda 0
   #txa
 rts
+.macro SPrint
+    lda {0}.lo; sta <r4>
+    lda {0}.hi; sta <r5>
+    jsr [SOUT]
+.endmacro
 
+.macro SPrintZ
+    lda <{0}+0>; sta <r4>
+    lda <{0}+1>; sta <r5>
+    jsr [SOUT]
+.endmacro
+_SOUT
+  # prints string in r45 until zero termination
+  ldy 0
+__loop
+  lda [<r4>+Y]; beq(done)
+  phy
+  jsr [COUT]
+  ply;inc Y; bne (loop)
+  inc <r5>; bra (loop)
+__done
+rts
 # ----------------------------------------------------------------
 # Write Character to terminal
 _COUT
@@ -439,7 +458,7 @@ _COUT
   
   lda <Cursor+0>; and %0011_1111; sta <Cursor+0>
   
-  lda $00; sta <CursorTime>
+  lda 25; sta <CursorTime>
   
   
   __blinkcheck
@@ -470,9 +489,6 @@ cli; rts
 __lf
   inc <Cursor+1>
 jsr [ScrollFix]
-cli
-rts
-
 __cr
   stz <Cursor+0>
   cli

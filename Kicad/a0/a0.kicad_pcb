@@ -233,7 +233,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "V"
+		(property "Value" "C"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "28932c79-1735-4792-b7fa-50c43628ae7d")
@@ -16623,7 +16623,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "N"
+		(property "Value" "M"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "ac47983e-9776-4d74-b491-42b4fe1367c8")
@@ -23747,7 +23747,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C"
+		(property "Value" "X"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "84d315da-8f08-4b7d-8412-e56697df1945")
@@ -29425,7 +29425,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "X"
+		(property "Value" "Z"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "a466dd6e-2bd4-4e49-885d-f32fd4bbd469")
@@ -29810,7 +29810,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "Z"
+		(property "Value" "SHIFT"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "cc40ba67-bb99-4183-b0d5-de24d7a9b452")
@@ -32655,7 +32655,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "SPACE"
+		(property "Value" "ALT"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "f2347476-4165-45f1-847d-152a64da5b84")
@@ -34688,7 +34688,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "ALT"
+		(property "Value" "B"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "48cdc9b4-7eb9-4991-9b5e-3f0a16ef16b9")
@@ -38846,7 +38846,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "SHIFT"
+		(property "Value" "V"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "30cc1a0e-e791-436c-ac4d-b187c1339afb")
@@ -42077,7 +42077,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "B"
+		(property "Value" "N"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "a08db95e-0faa-40e2-8cc3-34f13e259aec")
@@ -42919,7 +42919,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "M"
+		(property "Value" "SPACE"
 			(at -7.81 8.52 0)
 			(layer "F.SilkS")
 			(uuid "b414e622-a9d2-4861-bf39-32a4de20a0ec")

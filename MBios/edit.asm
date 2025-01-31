@@ -11,6 +11,11 @@ __Init
     sta [$1F00+X]
   inc X; bne (loop)
   #lda $30; sta <BotPTR+1>
+  
+  ldy 0; lda 0
+  sta [<BotPTR>+Y]
+  SPrint $2000
+  
 __Main
   jsr [CalcSize]
   jsr [CalcSize]

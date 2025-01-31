@@ -126,34 +126,21 @@ ___inputfull
   lda BEL; jsr [COUT]
 bra (fim)
 
-_SOUT
-  ldy 0
-__loop
-  lda [<r4>+Y]; beq(break)
-  phy
-  jsr [COUT]
-  ply;inc Y; bne (loop)
-__break
-rts
+
 
 _cUNKNOWN
-  lda string_unknown.lo; sta <r4>
-  lda string_unknown.hi; sta <r5>
-  jsr [SOUT]
+  SPrint string_unknown
 rts
 
 _cHELP
-  lda string_help.lo; sta <r4>
-  lda string_help.hi; sta <r5>
-  jsr [SOUT]
+  Sprint string_help
   sei
   ldx 0
   __loop
-    
     lda [CmdTable+X]; beq (done)
-    lda string_list.lo; sta <r4>
-    lda string_list.hi; sta <r5>
-    phx; jsr [SOUT]; plx
+    phx
+    SPrint string_list
+    plx
     ldy 6
     __print
       phy; phx; lda [CmdTable+X]; jsr [COUT]; plx; ply
