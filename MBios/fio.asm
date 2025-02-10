@@ -1,9 +1,24 @@
 # FIN
-_FiIN
-asflkdafsdlkasdflkasdflj
-
+_FileIN
+  sei
+  .val speed0 r0
+  lda <rF>; asl A; dec A; sta <speed0>
+  
+  stz <r1>
+  
+  lda [$8000]; bmi (wait1)
+  __wait0
+    inc <r1>
+  lda [$8000]; bmi (wait0)
+  bra (waited)
+  __wait1
+    inc <r1>
+  lda [$8000]; bpl (wait1)
+  __waited
+  cli
+rts
 # FOUT
-_FiOUT
+_FileOUT
     sei
     .val speed0 r0
     .val speed1 r1

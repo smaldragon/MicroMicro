@@ -1,3 +1,56 @@
+_FileIN
+_OTLA_IN
+  sei
+  stz <r4>
+  lda $2000.hi; sta <r5>
+  
+  
+  
+  # Wait for first toggle
+  __StartWait
+  lda [$8000]; bpl (waitZero)
+  
+  stz <r0>; stz <r1>; lda $80; sta <r3>
+   
+  # ------------------------- 
+  # -- Start at Zero
+  __waitOne
+  lda [$8000]; bpl (waitOne)
+  ___waitToggle
+    inc <r0>
+  lda [$8000]; bpl (waitToggle)
+  ___waitDone
+    inc <r1>
+  lda [$8000]; bmi (waitDone)
+  
+  bra (calc)
+  
+  # -------------------------
+  # -- Start at One
+  __waitZero
+  
+  lda [$8000]; bmi (waitZero)
+  ___waitToggle
+    inc <r0>
+  lda [$8000]; bpl (waitToggle)
+  ___waitDone
+    inc <r1>
+  lda [$8000]; bmi (waitDone) 
+  # ----------------
+  __calc
+  lda <r0>; lsr A; lsr A; lsr A; and %0000_0011; asl A; sta <r0>
+  lda <r1>; lsr A; lsr A; lsr A; and %0000_0001; ora <r0>; tax
+  lda [OTLA_TABLE+X]
+  lsr A; ror <r3>; lsr A; ror <r3>; bcs (filledByte)
+  lda [$8000]; bmi (waitZero); jmp [waitOne]
+  __filledByte
+  ldy 0
+  lda <r3>; sta [<r4>+Y]
+  jmp [StartWait]
+rts
+_OTLA_TABLE
+
+_FileOUT
 _OTLA_OUT
 sei
 sec

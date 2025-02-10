@@ -17,11 +17,12 @@
 .zp rD
 .zp rE
 .zp rF
+.zp FNAME 9
 .zp RUNCODE 4
 .zp IRQ 3
 .zp NMI 3
 .zp FSIZE 2
-.zp FNAME 8
+
 .val MAXSIZE $6000
 
 .val InputSize 63
@@ -110,7 +111,7 @@ bra (fim)
 ___lf
   jsr [COUT]
   lda  CR; jsr [COUT]
-  ldx <InputL>; lda ' '; sta <Input+X>
+  ldx <InputL>; lda $00; sta <Input+X>
   jsr [CmdRun]
   stz <InputL>
   lda '>'; jsr [COUT]
@@ -160,13 +161,11 @@ rts
 
 
 _cFILE
-  lda txt1.lo; sta <r4>
-  lda txt1.hi; sta <r5>
-  jsr [SOUT]
-  
   lda <FNAME>; beq (unnamedfile)
+  lda CHI; jsr [COUT]
   lda FNAME.lo; sta <r4>; stz <r5>
   jsr [SOUT]
+  lda CNO; jsr [COUT]
   bra (continue)
   __unnamedfile
   lda txtun.lo; sta <r4>; lda txtun.hi; sta <r5>
@@ -181,10 +180,8 @@ _cFILE
   lda txt2.hi; sta <r5>
   jsr [SOUT]
 rts
-__txt1
-.byte 'File:',CR,LF,"  "
 __txt2
-.byte ' bytes',CR,LF,$00
+.byte ' bytes',CR,LF,CR,LF,$00
 __txtun
 .byte "<untitled>"
 
@@ -195,10 +192,24 @@ rts
 _cNEW
   jsr [Edit_New]
   stz <FSIZE+0>; stz <FSIZE+1>
-  lda string_new.lo; sta <r4>
-  lda string_new.hi; sta <r5>
-  jsr [SOUT]
-rts
+  stz <FNAME>
+  jmp [cFILE]
+
+_cNAME
+  ldx 5
+  ldy 0
+  
+  __findstart
+    lda <Input+X>; beq (done)
+    cmp ' '; bne (cmdStart)
+  inc X; cpx <InputL>; beq (done); bra (findstart)
+  __cmdStart
+    lda <Input+X>; sta [FNAME+Y]
+    inc Y; inc X
+  cpx <InputL>; beq (done); cpy 8; beq (done); bra (cmdStart)
+  __done
+  lda 0; sta [FNAME+Y]
+  jmp [cFILE]
 
 _cSIZE
   sec
@@ -243,7 +254,7 @@ _cSEND
   lda $2000.hi; sta <r1>
   lda <BotPTR+0>; sta <r2>
   lda <BotPTR+1>; sta <r3>
-  jmp [FOUT]
+  jmp [FileOUT]
   
 _cLOAD
 jmp [FileIN]
@@ -306,10 +317,11 @@ _CmdTable
 .byte 'clear '; .word cCLEAR
 .byte 'file  '; .word cFILE
 .byte 'new   '; .word cNEW
+.byte 'name  '; .word cNAME
 .byte 'edit  '; .word cEDIT
 .byte 'peek  '; .word cPEEK
-.byte 'save  '; .word OTLA_OUT
-.byte 'load  '; .word cLOAD
+.byte 'save  '; .word FileOUT
+.byte 'load  '; .word FileIN
 .byte $00
 
 _CmdRun
