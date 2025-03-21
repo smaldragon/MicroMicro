@@ -17,6 +17,8 @@ _FONT
 .asm otla
 
 .zp Cursor  2
+	.val CursorX Cursor+0
+	.val CursorY Cursor+1
 .zp CursorFlip 1
 .zp CursorTime 1
 .zp CursorColour 1
@@ -565,16 +567,40 @@ rts
 _AsciiToHex
   # Converts value in A and X
   # result in A
+  
+  # First Nibble (A)
+  ## convert to lowercase
+  ora %0010_0000
+  ## test
+  cmp '0'; bcc (fail)
   sec; sbc $30; cmp $0A; bcc (notletterLo)
-    and %01011_1111; sec; sbc 7
+    sec; sbc $27
+    cmp $10; bcs (fail)
   __notletterLo
-  asl A; asl A; asl A; asl A; sta <r0>
+  
+  ## store first nibble for later
+  sta <r1>; asl A; asl A; asl A; asl A; sta <r0>
+  
+  # Second Nibble (X)
   txa
+  ## convert to lowercase
+  ora %0010_0000
+  ## test
+  cmp '0'; bcc (nosecondnibble)
   sec; sbc $30; cmp $0A; bcc (notletterHi)
-    and %01011_1111; sec; sbc 7
+    sec; sbc $27
+    cmp $10; bcs (nosecondnibble)
   __notletterHi
-  ora <r0>
-rts
+  
+  # Return
+    ora <r0>
+    sec; rts
+  __nosecondnibble
+    lda <r1>
+    sec; rts
+  __fail
+    lda 0
+    clc; rts
 
 _BinToDecPrintZ
     jsr [BinToDec]

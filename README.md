@@ -86,3 +86,22 @@ The design uses only 12 integrated circuits:
 * `74hc541` - 8bit buffer
 * `74hc590`*2 - 8bit Counters
 * `74hc4520`- Dual 4bit Counters
+
+# Operating System
+
+The 8k bios provides a simple command line operating system with the following commands:
+
+| Command               | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `help`                | Lists all available commands                   |
+| `clear`               | Clears the display			                 |
+| `file`                | The Size and Name of the currently loaded file |
+| `new`                 | Create a new file                              |
+| `name <name>`         | Rename the current file                        |
+| `edit`                | Open the file editor                           |
+| `save`                | Save file to tape                              |
+| `load`                | Load file from tape                            |
+| `run`    	            | Run Loaded File                                |
+| `peek <addr> <bytes>` | Read contents of Memory                        |
+| `poke <addr> <bytes>` | Write to Memory                                |
+| `prun <addr>`         | Run a Machine Code Subroutine                  |

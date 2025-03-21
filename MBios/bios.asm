@@ -35,6 +35,7 @@
   .asm edit
   .asm lang
 _RESET
+  sei; cld
   lda $40; sta <NMI>        # RTI
   
   # Speed Calc
@@ -127,7 +128,37 @@ ___inputfull
   lda BEL; jsr [COUT]
 bra (fim)
 
+_hInputH8
+	# -- Parse an 8bit value hex value from input
+	# in:
+	#	X→Input Index
+	# out:
+	#	X→Incremented Input Index
+	#	C→Successful
+	#	A→Parsed Value
+	
+	dec X
+	__skipspaces
+		inc X
+		cpx InputSize-1; bcs (fail)
+		lda <Input+X>; beq (fail)
 
+	cmp ' '; beq (skipspaces)
+	
+	# Read Input
+	lda <Input+X>; sta <0>
+	inc X
+	lda <Input+X>; sta <1>
+	inc X
+	
+	phx; lda <0>; ldx <1>
+	jsr [AsciiToHex]
+	plx; bcc (fail)
+	
+	__succ
+	sec; rts
+	__fail
+	clc; rts
 
 _cUNKNOWN
   SPrint string_unknown
@@ -259,25 +290,53 @@ _cSEND
 _cLOAD
 jmp [FileIN]
 
-_cPEEK
 
-  lda 16; sta <r4>
+# ------------------------------
+# Memory Monitor Functions
+_cPRUN
+    # -- Run a "program" at specified address
+	ldx 4
+	jsr [hInputH8]; bcc (break)
+		sta <r2>
+	jsr [hInputH8]; bcc (break)
+		sta <r1>
+	lda $4C # (opcode for JMP)
+	    sta <r0>
+	jsr [r0]
+__break
+rts
+_cPOKE
+	ldx 4
+	jsr [hInputH8]; bcc (break)
+		sta <r7>
+	jsr [hInputH8]; bcc (break)
+		sta <r6>
+		
+    ldy 0
+	__WriteLoop
+		jsr [hInputH8]; bcc (break)
+		sta [<r6>+Y]
+    inc Y; bra (WriteLoop)
+__break
+rts
+
+_cPEEKExit
+  rts
+_cPEEK
+  jsr [hInputH8]; bcc (cPEEKExit)
+    sta <r6>
+  jsr [hInputH8]; bcc (cPEEKExit)
+	sta <r5>
   
-  lda <Input+5>
-  ldx <Input+6>
-  jsr [AsciiToHex]
-  sta <r6>
-  lda <Input+7>
-  ldx <Input+8>
-  jsr [AsciiToHex]
-  sta <r5>
-  
-  #lda $80; sta <r5>
-  #lda $00; sta <r6>
+  stz <r7>; stz <r8>
+  jsr [hInputH8]; bcc (nolimit)
+	sta <r7>; sta <r8>
+  __nolimit
   
   __bigloop
   ldy $00
   ldx $10
+  
   __loop
     phx; phy; lda [<r5>+Y]
     jsr [HexToAscii]
@@ -285,9 +344,16 @@ _cPEEK
     pla; jsr [COUT]
     lda ' '; jsr [COUT]
     
+    dec <r7>; bne (nobreak)
+    pla; pla
+    bra (break)
+    ___nobreak
+    
     # Write Ascii repr
   ply; inc Y; plx; dec X; bne (loop)
+  ___break
   
+  lda 48; sta <CursorX>
   ldy $00
   ldx $10
   __loop2
@@ -297,12 +363,17 @@ _cPEEK
     bmi (notchar)
     cmp $20; bcc (notchar)
     cmp $7F; beq (notchar)
-      tax
+    tax
     __notchar
     txa; jsr [COUT]
+    
+    dec <r8>; bne (nobreak)
+    pla; pla
+    bra (break)
+    ___nobreak
+    
   ply; inc Y; plx; dec X; bne (loop2)
   
-  dec <r4>; beq (break)
     clc
     lda <r5>; adc $10; sta <r5>
     lda <r6>; adc $00; sta <r6>
@@ -312,17 +383,7 @@ _cPEEK
   lda CR; jsr [COUT]
 rts
 
-_CmdTable
-.byte 'help  '; .word cHELP
-.byte 'clear '; .word cCLEAR
-.byte 'file  '; .word cFILE
-.byte 'new   '; .word cNEW
-.byte 'name  '; .word cNAME
-.byte 'edit  '; .word cEDIT
-.byte 'peek  '; .word cPEEK
-.byte 'save  '; .word FileOUT
-.byte 'load  '; .word FileIN
-.byte $00
+
 
 _CmdRun
   ldx 0
@@ -332,18 +393,37 @@ _CmdRun
       jmp [cUNKNOWN]
     __continue
     
-    __MatchLoop  
-      lda [CmdTable+X]
+    __MatchLoop
+      lda [CmdTable+X]; cmp ' '; beq (checkmatch)
       cmp [Input+Y]; bne (next)
-      cmp ' '; beq (matched)
-      #lda $FF; sta [$1F00+X]
     inc X; inc Y; bra (MatchLoop)
-    __next
+    ___checkmatch
+    	lda [Input+Y]; beq (matched)
+    	cmp ' '; beq (matched)
+    ___next
       clc; txa; and %1111_1000; adc 8; tax; bra (loop)
-    __matched
-      # We Matched
-      #jmp [cHELP]
-      txa; and %1111_1000; ora %0000_0110; tax; jmp [[CmdTable+X]]
+    
+    # We Matched
+    ___matched
+    txa; and %1111_1000; ora %0000_0110; tax
+    jmp [[CmdTable+X]]
+_CmdTable
+    .byte 'help  '; .word cHELP
+    .byte 'clear '; .word cCLEAR
+
+    .byte 'file  '; .word cFILE
+    .byte 'new   '; .word cNEW
+    .byte 'name  '; .word cNAME
+    .byte 'edit  '; .word cEDIT
+    .byte 'save  '; .word FileOUT
+    .byte 'load  '; .word FileIN
+
+    .byte 'peek  '; .word cPEEK
+    .byte 'poke  '; .word cPOKE
+    .byte 'prun  '; .word cPRUN
+    
+    .byte $00
+
 _string1
 .byte FF,BEL, CHI,' MicroMicro ',CNO, " 24KiB "
 _string2
