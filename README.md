@@ -105,3 +105,18 @@ The 8k bios provides a simple command line operating system with the following c
 | `peek <addr> <bytes>` | Read contents of Memory                        |
 | `poke <addr> <bytes>` | Write to Memory                                |
 | `prun <addr>`         | Run a Machine Code Subroutine                  |
+
+# Changelog
+
+## A2
+
+* Reset is now performed using a MCP-100 voltage supervisor, this primarly serves to replace the 74HC14 Schmitt Trigger Hex NOT with a 74HCT04, reducing delays, improving reliabiliy of the clock oscillator circuit, and freeing 1 NOT gate for the video circuit
+* Video glitches (leftmost pixel column doubled on right, junk at the bottom of the screen) are now gone
+* VGA video output is now better centered on the screen
+* The small 6mm buzzer has been replaced with an header for a small speaker, improving volume and sound clarity
+* Filtering capacitor added to data output
+* Needless diodes removed
+* Fixed footprint for headphone jack
+* 2 additional M2 screw posts added to the center region of the board
+* Schematic rearranged
+

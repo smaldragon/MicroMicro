@@ -487,15 +487,14 @@
         "priority": 2147483647,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.25,
-        "via_diameter": 0.8,
-        "via_drill": 0.4,
+        "via_diameter": 0.6,
+        "via_drill": 0.3,
         "wire_width": 6
       },
       {
         "bus_width": 12,
         "clearance": 0.2,
         "diff_pair_gap": 0.25,
-        "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
         "line_style": 0,
         "microvia_diameter": 0.3,
@@ -513,7 +512,6 @@
         "bus_width": 12,
         "clearance": 0.2,
         "diff_pair_gap": 0.25,
-        "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
         "line_style": 0,
         "microvia_diameter": 0.3,
@@ -531,7 +529,6 @@
         "bus_width": 12,
         "clearance": 0.2,
         "diff_pair_gap": 0.25,
-        "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
         "line_style": 0,
         "microvia_diameter": 0.3,
@@ -553,6 +550,9 @@
     "netclass_assignments": {
       "GND": [
         "GND"
+      ],
+      "Net-(SW2-A)": [
+        "VBUS"
       ],
       "Net-(SW32-A)": [
         "VBUS"
@@ -704,7 +704,7 @@
       "workbook_filename": ""
     },
     "page_layout_descr_file": "",
-    "plot_directory": "",
+    "plot_directory": "./",
     "space_save_all_events": true,
     "spice_adjust_passive_values": false,
     "spice_current_sheet_as_root": false,
@@ -720,6 +720,10 @@
     [
       "fc9f0664-12ec-44ef-b3db-0b33514ae060",
       "Root"
+    ],
+    [
+      "ffc22107-cb71-4cb0-9ea1-02aa59a15e44",
+      "Keyboard and Joysticks"
     ]
   ],
   "text_variables": {}
