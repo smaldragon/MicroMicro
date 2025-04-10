@@ -25221,7 +25221,7 @@
 				)
 			)
 		)
-		(property "Value" "27KΩ"
+		(property "Value" "10KΩ"
 			(at 210.82 146.304 90)
 			(effects
 				(font
@@ -25614,7 +25614,7 @@
 				)
 			)
 		)
-		(property "Value" "5.6KΩ"
+		(property "Value" "330Ω"
 			(at 83.566 20.32 90)
 			(effects
 				(font
@@ -27592,10 +27592,10 @@
 		(dnp no)
 		(uuid "8c141636-4eb3-41d1-ab17-cda2fe9aed3c")
 		(property "Reference" "Y1"
-			(at 110.744 30.48 0)
+			(at 110.5896 30.6326 0)
 			(effects
 				(font
-					(size 1.27 1.27)
+					(size 1.016 1.016)
 				)
 			)
 		)

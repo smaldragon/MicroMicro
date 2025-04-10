@@ -20813,7 +20813,7 @@
 				)
 			)
 		)
-		(property "Value" "5.6KΩ"
+		(property "Value" "330Ω"
 			(at 3.81 0 0)
 			(layer "F.SilkS")
 			(uuid "771047d8-1b63-412f-a03d-c27510abf9cb")
@@ -45439,7 +45439,7 @@
 				)
 			)
 		)
-		(property "Value" "27KΩ"
+		(property "Value" "10KΩ"
 			(at 3.81 0 0)
 			(layer "F.SilkS")
 			(uuid "8299903f-894a-4bd0-8af8-a0c2dfdf5991")
