@@ -7,6 +7,6 @@ fi
 
 if gcc system.c -Llib -lSDL2 -lSDL2_image; then
     mv a.out build/microemu
-    
-    ./build/microemu
+    cd build
+    ./microemu
 fi

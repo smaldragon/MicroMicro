@@ -24,7 +24,8 @@ _FONT
 .zp CursorColour 1
 .zp KInp    14
 .zp KInpPtr 1
-.zp KLast   7
+.zp KLast   5
+.zp KCur    5
 .zp KMod    1
 .zp KTime   1
 .zp KRepeat 1
@@ -135,8 +136,9 @@ _KRowRead
   ldx <KInpPtr>; cpx 8; beq (return)
   ldy <KMod>
   __loop
+    lsr <r2>
     lda [<r0>+Y]
-    lsr <r2>; bcc (notpressed)
+    beq (notpressed); bcc (notpressed)
       # pressed logic goes here
       inc X; sta <KInp-1+X>; cpx 8; beq (return)
     __notpressed
@@ -165,13 +167,20 @@ _KReadINT
   .val KJoy2 %1001_0111_1111_1111
   
   __modifiers
-  lda [KRow1]; and %00_000100; sta <r0>
-  lda [KRow5]; and %00_001000; ora <r0>
+  lda [KRow1]; sta <KCur+0>
+  lda [KRow2]; sta <KCur+1>
+  lda [KRow3]; sta <KCur+2>
+  lda [KRow4]; sta <KCur+3>
+  lda [KRow5]; sta <KCur+4>
+  
+  
+  lda <KCur+0>; and %00_000100; sta <r0>
+  lda <KCur+4>; and %00_001000; ora <r0>
   asl A; sta <KMod>
   
   __row1
   lda <KLast+0>; sta <r3>
-  lda [KRow1]; cmp <KLast+0>; beq (row2)
+  lda <KCur+0>; cmp <KLast+0>; beq (row2)
     inc <r4>
     sta <r2>; sta <KLast+0>
     lda KMapR1.lo; sta <r0>
@@ -180,7 +189,7 @@ _KReadINT
   __row2
   #jmp [blink]
   lda <KLast+1>; sta <r3>
-  lda [KRow2]; cmp <KLast+1>; beq (row3)
+  lda <KCur+1>; cmp <KLast+1>; beq (row3)
     inc <r4>
     sta <r2>; sta <KLast+1>
     lda KMapR2.lo; sta <r0>
@@ -188,7 +197,7 @@ _KReadINT
     jsr [KRowRead]
   __row3
   lda <KLast+2>; sta <r3>
-  lda [KRow3]; cmp <KLast+2>; beq (row4)
+  lda <KCur+2>; cmp <KLast+2>; beq (row4)
     inc <r4>
     sta <r2>; sta <KLast+2>
     lda KMapR3.lo; sta <r0>
@@ -196,7 +205,7 @@ _KReadINT
     jsr [KRowRead]
   __row4
   lda <KLast+3>; sta <r3>
-  lda [KRow4]; cmp <KLast+3>; beq (row5)
+  lda <KCur+3>; cmp <KLast+3>; beq (row5)
     inc <r4>
     sta <r2>; sta <KLast+3>
     lda KMapR4.lo; sta <r0>
@@ -204,27 +213,11 @@ _KReadINT
     jsr [KRowRead]
   __row5
   lda <KLast+4>; sta <r3>
-  lda [KRow5]; cmp <KLast+4>; beq (row6)
+  lda <KCur+4>; cmp <KLast+4>; beq (blink)
     inc <r4>
     sta <r2>; sta <KLast+4>
     lda KMapR5.lo; sta <r0>
     lda KMapR5.hi; sta <r1>
-    jsr [KRowRead]
-  __row6
-  lda <KLast+4>; sta <r3>
-  lda [KJoy1]; cmp <KLast+5>; beq (row7)
-    inc <r4>
-    sta <r2>; sta <KLast+5>
-    lda KMapJ1.lo; sta <r0>
-    lda KMapJ2.hi; sta <r1>
-    jsr [KRowRead]
-  __row7
-  lda <KLast+4>; sta <r3>
-  lda [KJoy2]; cmp <KLast+6>; beq (blink)
-    inc <r4>
-    sta <r2>; sta <KLast+6>
-    lda KMapJ2.lo; sta <r0>
-    lda KMapJ2.hi; sta <r1>
     jsr [KRowRead]
   __blink
   lda 30; cmp <CursorTime>; bne (noblink)

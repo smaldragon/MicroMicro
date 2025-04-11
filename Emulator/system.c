@@ -29,10 +29,11 @@ const int BAUD_CYCLES = 104 * (CPU_CLOCK/1000000);
 const int screen_width = 256; const int screen_height = 240;
 const uint8_t* os_keyboard;
 
-const uint32_t tick_interval = 1000/65;
+const uint32_t tick_interval = 1000/60;
 uint32_t next_time = 0;
 
 uint8_t system_ram[0x8000];
+uint8_t system_vid[32*256];
 uint8_t *system_rom;
 int     system_rom_size;
 
@@ -228,49 +229,84 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
         
         switch (row) {
           case 0:
-              if (os_keyboard[SDL_SCANCODE_Q]) operand        |= 0x01;
-              if (os_keyboard[SDL_SCANCODE_A]) operand        |= 0x02;
-              if (os_keyboard[SDL_SCANCODE_LSHIFT]|shift) operand        |= 0x04;
-              if (os_keyboard[SDL_SCANCODE_Z]) operand        |= 0x08;
-              if (os_keyboard[SDL_SCANCODE_S]) operand        |= 0x10;
-              if (os_keyboard[SDL_SCANCODE_W]) operand        |= 0x20;
+              if (os_keyboard[SDL_SCANCODE_Q] | 
+                  os_keyboard[SDL_SCANCODE_1] | 
+                  os_keyboard[SDL_SCANCODE_KP_1] )
+                operand |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_A]) 
+                operand |= 0x02;
+              if (os_keyboard[SDL_SCANCODE_LSHIFT]|shift) 
+                operand |= 0x04;
+              if (os_keyboard[SDL_SCANCODE_Z]) 
+                operand |= 0x08;
+              if (os_keyboard[SDL_SCANCODE_S]) 
+                operand |= 0x10;
+              if (os_keyboard[SDL_SCANCODE_W] | 
+                  os_keyboard[SDL_SCANCODE_2] | 
+                  os_keyboard[SDL_SCANCODE_KP_2] ) 
+                operand |= 0x20;
               
               break;
          	case 1:
-              if (os_keyboard[SDL_SCANCODE_E]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_E] | 
+                  os_keyboard[SDL_SCANCODE_3] | 
+                  os_keyboard[SDL_SCANCODE_KP_3] )
+                operand |= 0x01;
               if (os_keyboard[SDL_SCANCODE_D]) operand        |= 0x02;
               if (os_keyboard[SDL_SCANCODE_X]) operand        |= 0x04;
               if (os_keyboard[SDL_SCANCODE_C]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_F]) operand        |= 0x10;
-              if (os_keyboard[SDL_SCANCODE_R]) operand        |= 0x20;
+              if (os_keyboard[SDL_SCANCODE_R] | 
+                  os_keyboard[SDL_SCANCODE_4] | 
+                  os_keyboard[SDL_SCANCODE_KP_4] ) 
+                operand |= 0x20;
               
               break;
           case 2:
-              if (os_keyboard[SDL_SCANCODE_T]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_T] | 
+                  os_keyboard[SDL_SCANCODE_5] | 
+                  os_keyboard[SDL_SCANCODE_KP_5] )
+                operand |= 0x01;
               if (os_keyboard[SDL_SCANCODE_G]) operand        |= 0x02;
               if (os_keyboard[SDL_SCANCODE_V]) operand        |= 0x04;
               if (os_keyboard[SDL_SCANCODE_B]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_H]) operand        |= 0x10;
-              if (os_keyboard[SDL_SCANCODE_Y]) operand        |= 0x20;
+              if (os_keyboard[SDL_SCANCODE_Y] | 
+                  os_keyboard[SDL_SCANCODE_6] | 
+                  os_keyboard[SDL_SCANCODE_KP_6] ) 
+                operand |= 0x20;
               
               break;
           case 3:
+              if (os_keyboard[SDL_SCANCODE_U] | 
+                  os_keyboard[SDL_SCANCODE_7] | 
+                  os_keyboard[SDL_SCANCODE_KP_7] )
+                operand |= 0x01;
               if (os_keyboard[SDL_SCANCODE_U]) operand        |= 0x01;
               if (os_keyboard[SDL_SCANCODE_J]) operand        |= 0x02;
               if (os_keyboard[SDL_SCANCODE_N]) operand        |= 0x04;
               if (os_keyboard[SDL_SCANCODE_M]) operand        |= 0x08;
               if (os_keyboard[SDL_SCANCODE_K]) operand        |= 0x10;
-              if (os_keyboard[SDL_SCANCODE_I]) operand        |= 0x20;
+              if (os_keyboard[SDL_SCANCODE_I] | 
+                  os_keyboard[SDL_SCANCODE_8] | 
+                  os_keyboard[SDL_SCANCODE_KP_8] ) 
+                operand |= 0x20;
               
               break;
           case 4:
-              if (os_keyboard[SDL_SCANCODE_O]) operand        |= 0x01;
+              if (os_keyboard[SDL_SCANCODE_O] | 
+                  os_keyboard[SDL_SCANCODE_9] | 
+                  os_keyboard[SDL_SCANCODE_KP_9] )
+                operand |= 0x01;
               if (os_keyboard[SDL_SCANCODE_L]) operand        |= 0x02;
               if (os_keyboard[SDL_SCANCODE_SPACE]) operand    |= 0x04;
               if (os_keyboard[SDL_SCANCODE_RALT]|alt) operand |= 0x08;
               if (os_keyboard[SDL_SCANCODE_RETURN]||
                   os_keyboard[SDL_SCANCODE_BACKSPACE]) operand|= 0x10;
-              if (os_keyboard[SDL_SCANCODE_P]) operand        |= 0x20;
+              if (os_keyboard[SDL_SCANCODE_P] | 
+                  os_keyboard[SDL_SCANCODE_0] | 
+                  os_keyboard[SDL_SCANCODE_KP_0] ) 
+                operand |= 0x20;
               
               break;
         }
@@ -321,7 +357,7 @@ int render_screen(SDL_Texture* texture) {
                 + ( y%8 );
         int o = 7-(x%8);
         
-        int p = (system_ram[a] >> o) & 1;
+        int p = (system_vid[a] >> o) & 1;
         
         if (p)
             pixels[x + y*(pitch/4)] = 0xFFFFFF;
@@ -476,7 +512,7 @@ int main(int argc, char *argv[])
     SDL_Event event;
     int cycles_per_line = CPU_CLOCK / 31250;
     while (!quit) {
-        if (cycle_count >= cycles_per_line*520 || cycle_count == -1) {
+        if (cycle_count >= cycles_per_line*524 || cycle_count == -1) {
             if (time_left()) {continue;}
             render_screen(system_screen);
             
@@ -524,7 +560,7 @@ int main(int argc, char *argv[])
           os_keyboard = SDL_GetKeyboardState(NULL);
         }
         else {
-        if (cycle_count > cycles_per_line*2) cpu.IRQ = 0; else cpu.IRQ = 1;
+        if (cycle_count < cycles_per_line*522) cpu.IRQ = 0; else cpu.IRQ = 1;
         //printf("\n\nø2 - %d\n", cur_cycle++);
         
         if (audio_buf_i < 4096) {
@@ -562,6 +598,15 @@ int main(int argc, char *argv[])
             printf("Read %X(%c) from %4X \n", operand, operand, result.address);
             }
         }
+        int y = (cycle_count / cycles_per_line)/2;
+        int x = (cycle_count % cycles_per_line) / (cycles_per_line/64);
+        
+        if (y < 256 && x >= 32) {
+          int a = ( (y/8) ) * 256 + ( x-32 ) * 8 + ( y%8 );
+          //printf("X=%i Y=%i A=%i\n",x,y,a);
+          system_vid[a] = system_ram[a];
+        }
+        
         // baud rate counting
         cycle_count += 1;
         baud_cur +=1;
