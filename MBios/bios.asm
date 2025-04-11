@@ -323,6 +323,7 @@ rts
 _cPEEKExit
   rts
 _cPEEK
+  ldx 4
   jsr [hInputH8]; bcc (cPEEKExit)
     sta <r6>
   jsr [hInputH8]; bcc (cPEEKExit)

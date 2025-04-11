@@ -2,9 +2,8 @@
 
 ![PCB Render](render.png)
 ![Emulator Screenshot](screen.png)
-![System Schematic](schematic.png)
 
-The MicroMicro (working name) is a project designed for a series I inteded(intend) to write, about how microcomputers work and how to go about developing one. It was designed to use a relatively small amount of integrated circuits (12), not use any programmable chips, microcontrollers or obselete parts, and to be a self-contained architecture that handles its own input and output (ie. not serial based).
+The MicroMicro (working name) is a project designed for a series I inteded(intend) to write, about how microcomputers work and how to go about developing one. It was designed to use a relatively small amount of integrated circuits (13), not use any programmable chips, microcontrollers or obselete parts, and to be a self-contained architecture that handles its own input and output (ie. not serial based).
 
 With these requirements in mind, the overall specs are humble but capable:
 * an 65c02 8bit cpu, running at 2Mhz
@@ -26,6 +25,9 @@ The software side is still up in the air, but I'm aiming for the following featu
 * Saving and loading via the tape interface
 
 This code would likely be custom and documented to follow the article structure of the hardware side of things.
+
+![System Schematic](schematic.png)
+![Keyboard Schematic](schematic_keyboard.png)
 
 # Memory Map
 
@@ -94,7 +96,7 @@ The 8k bios provides a simple command line operating system with the following c
 | Command               | Description                                    |
 | --------------------- | ---------------------------------------------- |
 | `help`                | Lists all available commands                   |
-| `clear`               | Clears the display			                 |
+| `clear`               | Clears the display			                       |
 | `file`                | The Size and Name of the currently loaded file |
 | `new`                 | Create a new file                              |
 | `name <name>`         | Rename the current file                        |
