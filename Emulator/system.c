@@ -23,7 +23,7 @@ int    psg_buf_size;
 
 int    beep;
 
-const int CPU_CLOCK = 2000000;
+const int CPU_CLOCK = 4000000;
 const int BAUD_CYCLES = 104 * (CPU_CLOCK/1000000);
 
 const int screen_width = 256; const int screen_height = 240;

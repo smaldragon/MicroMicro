@@ -71,6 +71,9 @@ _RESET
   lda '!'; sta <RUNCODE+3>
   
 _INIT
+  lda 32; jsr [BEEP]
+  lda 24; jsr [BEEP]
+  
   lda string1.lo; sta <r4>
   lda string1.hi; sta <r5>
   jsr [SOUT]
@@ -426,7 +429,7 @@ _CmdTable
     .byte $00
 
 _string1
-.byte FF,BEL, CHI,' MicroMicro ',CNO, " 24KiB "
+.byte FF, CHI,' MicroMicro ',CNO, " 24KiB "
 _string2
 .byte 'MHz',CR,LF,CR,LF,$00
 _string_help
@@ -437,6 +440,14 @@ _string_unknown
 .byte 'Unknown Command',BEL,CR,LF,$00
 _string_new
 .byte 'New File Created',CR,LF,$00
+
+.pad [$FEFD]
+_FunctionTable
+jmp [[$FF00+X]]
+.word CIN
+.word COUT
+.word BEEP
+
 .pad [VECTORS]
 .word NMI
 .word RESET

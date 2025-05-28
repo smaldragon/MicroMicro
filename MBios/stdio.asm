@@ -268,6 +268,28 @@ _STDIOINIT
   cli
 rts
 
+# ----------------------------------------------------------------
+# Pitched Beep
+_BEEP
+  # Frequency is based on rF, so the value will be constant
+  .val belLength 100
+  pha
+  sei
+  ldy belLength
+  __ouloop
+    sta [$C000]
+    ldx <rF>
+    __inloop
+      pla; pha
+      __ininloop
+      dec A; bne (ininloop)
+    dec X; bne (inloop)
+  dec Y; bne (ouloop)
+  pla
+  cli
+rts
+
+
 
 # ----------------------------------------------------------------
 # Character Input from keyboard
@@ -373,21 +395,8 @@ __del
 rts
 # BEL - Bell, plays a short sound
 __bel
-  # Frequency is based on rF, so the value will be constant
-  .val belLength 100
-  sei
-  ldy belLength
-  ___ouloop
-    sta [$C000]
-    ldx <rF>
-    ___inloop
-      lda 32; sta <r0>
-      ___ininloop
-      dec <r0>; bne (ininloop)
-    dec X; bne (inloop)
-  dec Y; bne (ouloop)
-  cli
-rts
+  lda 48
+  jmp [BEEP]
 
 # FF - Form Feed, clears screen
 __ff
