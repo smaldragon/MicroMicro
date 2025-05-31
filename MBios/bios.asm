@@ -17,11 +17,12 @@
 .zp rD
 .zp rE
 .zp rF
-.zp FNAME 9
-.zp RUNCODE 4
 .zp IRQ 3
 .zp NMI 3
-.zp FSIZE 2
+.zp EXTRATBL 2
+#.zp FSIZE 2 using BotPTR for now instead
+.zp FNAME 9
+.zp RUNCODE 4
 
 .val MAXSIZE $6000
 
@@ -82,10 +83,13 @@ _INIT
   lda string2.hi; sta <r5>
   jsr [SOUT]
   
-  jsr [cFILE]
-  jsr [cHELP]
-  stz <InputL>
-  lda '>'; jsr [COUT]
+  
+  # By default EXTRATBL points to a zero byte within itself
+  lda EXTRATBL.lo+1; sta <EXTRATBL>
+  lda 0; sta <EXTRATBL+1>
+  
+  #lda TestCmdTable.lo; sta <EXTRATBL+0>
+  #lda TestCmdTable.hi; sta <EXTRATBL+1>
   
   # Check for CART-RUN
   lda [$C000]; cmp 'C'; bne (MAIN)
@@ -96,8 +100,14 @@ _INIT
   lda [$C005]; cmp 'R'; bne (MAIN)
   lda [$C006]; cmp 'U'; bne (MAIN)
   lda [$C007]; cmp 'N'; bne (MAIN)
-    jmp [$C008]
+    jsr [$C008]
+    
 _MAIN
+  jsr [cFILE]
+  jsr [cHELP]
+  stz <InputL>
+  lda '>'; jsr [COUT]
+    
 __fim
   lda 0
   jsr [CIN]; beq (fim)
@@ -177,7 +187,7 @@ _cHELP
     SPrint string_list
     plx
     ldy 6
-    __print
+    ___print
       phy; phx; lda [CmdTable+X]; jsr [COUT]; plx; ply
     sei; inc X; dec Y; bne (print)
     inc X; inc X
@@ -186,6 +196,19 @@ _cHELP
     #lda LF; jsr [COUT]
     plx
   bra (loop)
+  ___done
+  ldy 0
+  __extraloop
+    lda [<EXTRATBL>+Y]; beq (done)
+    phy
+    SPrint string_list
+    ply
+    ldx 6
+    ___print
+      phy;phx; lda [<EXTRATBL>+Y]; jsr [COUT]; plx; ply
+    sei; inc Y; dec X; bne (print)
+    inc Y; inc Y
+  bra (extraloop)
   __done
   cli
   lda CR; jsr [COUT]
@@ -225,7 +248,8 @@ rts
 
 _cNEW
   jsr [Edit_New]
-  stz <FSIZE+0>; stz <FSIZE+1>
+  lda $2000.lo; sta <BotPTR+0>
+  lda $2000.hi; sta <BotPTR+1>
   stz <FNAME>
   jmp [cFILE]
 
@@ -244,40 +268,6 @@ _cNAME
   __done
   lda 0; sta [FNAME+Y]
   jmp [cFILE]
-
-_cSIZE
-  sec
-  lda MAXSIZE.lo; sbc <FSIZE+0>; sta <r0>
-  lda MAXSIZE.hi; sbc <FSIZE+1>; sta <r1>
-  
-  sed
-  lda <r0>; and $0F; adc 0; sta <r2>
-  lda <r0>; lsr A; lsr A; lsr A; lsr A; tax
-  __loop
-  cpx 0; beq (next)
-    clc
-    lda <r2>; adc $16; sta <r2>
-    lda <r3>; adc 00; sta <r3>
-  dec X; bra (loop)
-  
-  __next
-  lda <r1>; and $0F; tax
-  cpx 0; beq (next)
-    clc
-    lda <r2>; adc $56; sta <r2>
-    lda <r3>; adc $02; sta <r3>
-    lda <r4>; adc $00; sta <r4>
-  dec X; bra (loop)
-  __next
-  lda <r1>; and $F0; lsr A; lsr A; lsr A; tax
-  cpx 0; beq (next)
-    clc
-    lda <r2>; adc $96; sta <r2>
-    lda <r3>; adc $40; sta <r3>
-    lda <r4>; adc $00; sta <r4>
-  dec X; bra (loop)
-  __next
-rts
 
 _cEDIT
 	jsr [Edit]
@@ -394,7 +384,7 @@ _CmdRun
   __loop
     ldy 0
     lda [CmdTable+X]; bne (continue)
-      jmp [cUNKNOWN]
+      jmp [ExtraCmdRun]
     __continue
     
     __MatchLoop
@@ -411,6 +401,30 @@ _CmdRun
     ___matched
     txa; and %1111_1000; ora %0000_0110; tax
     jmp [[CmdTable+X]]
+_ExtraCmdRun
+  ldy 0
+  __loop
+    ldx 0
+    lda [<EXTRATBL>+Y]; bne (continue)
+      jmp [cUNKNOWN]
+    __continue
+    
+    __MatchLoop
+      lda [<EXTRATBL>+Y]; cmp ' '; beq (checkmatch)
+      cmp [Input+X]; bne (next)
+    inc X; inc Y; bra (MatchLoop)
+    ___checkmatch
+    	lda [Input+X]; beq (matched)
+    	cmp ' '; beq (matched)
+    ___next
+      clc; tya; and %1111_1000; adc 8; tay; bra (loop)
+    
+    # We Matched
+    ___matched
+    tya; and %1111_1000; ora %0000_0110; tay
+    lda [<EXTRATBL>+Y]; sta <0>; inc Y
+    lda [<EXTRATBL>+Y]; sta <1>
+    jmp [[0]]
 _CmdTable
     .byte 'help  '; .word cHELP
     .byte 'clear '; .word cCLEAR
@@ -427,6 +441,11 @@ _CmdTable
     .byte 'prun  '; .word cPRUN
     
     .byte $00
+# Used for testing the extra command table
+#_TestCmdTable
+#    .byte 'helpi '; .word cHELP
+#    .byte 'helpu '; .word cFILE
+#    .byte $00
 
 _string1
 .byte FF, CHI,' MicroMicro ',CNO, " 24KiB "
