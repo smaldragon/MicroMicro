@@ -471,13 +471,21 @@ int main(int argc, char *argv[])
         "MicroMicro",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         screen_width * 2, screen_height* 2,
-        SDL_WINDOW_SHOWN
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
+    
     SDL_Renderer* renderer = SDL_CreateRenderer(
         window,
         -1,
         0
     );
+    SDL_RenderSetLogicalSize(renderer,256,240);
+    SDL_RenderSetIntegerScale(renderer,1);
+    
+    // This needs to be done after the creation of the renderer due to a bug in older sdl2 versions
+    // https://github.com/libsdl-org/SDL/issues/8805
+    SDL_SetWindowMinimumSize(window,256,240);
+    
     SDL_Texture* system_screen = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_RGBA32,
@@ -519,6 +527,7 @@ int main(int argc, char *argv[])
             SDL_RenderClear(renderer);
             SDL_RenderCopy(renderer, system_screen, NULL, NULL);
             SDL_RenderPresent(renderer);
+            
             SDL_UpdateWindowSurface(window);
             
             next_time = SDL_GetTicks() + tick_interval;

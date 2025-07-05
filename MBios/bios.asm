@@ -39,16 +39,24 @@ _RESET
   sei; cld
   lda $40; sta <NMI>        # RTI
   
-  # Speed Calc
+  # -- Clock Speed Calc, stores (clock cyles in a irq)/16 in <rF>
+  ## 8 = 2Mhz
+  ## 16 = 4Mhz
+  ## 32 = 8Mhz
+  # align with next irq
   wai
+  # interrupt subroutine takes exactly 16 cycles
   lda $65; sta <IRQ+0>      # ADC zp
   lda 0;   sta <IRQ+1>      
   lda $40; sta <IRQ+2>      # RTI
   lda 1;   sta <r0>
   
+  # wait loop until the end of the current irq
   ldx 0
   __wait
   inc X; bne (wait)
+  
+  # activate the irq subroutine
   lda 0
   clc
   cli
