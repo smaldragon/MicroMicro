@@ -112,6 +112,8 @@ The 8k bios provides a simple command line operating system with the following c
 
 ## A2
 
+[Interactive BOM](https://raw.githack.com/smaldragon/MicroMicro/refs/heads/main/Kicad/a2/bom/ibom.html)
+
 * Reset is now performed using a MCP-100 voltage supervisor, this primarly serves to replace the 74HC14 Schmitt Trigger Hex NOT with a 74HCT04, reducing delays, improving reliabiliy of the clock oscillator circuit, and freeing 1 NOT gate for the video circuit
 * Video glitches (leftmost pixel column doubled on right, junk at the bottom of the screen) are now gone
 * VGA video output is now better centered on the screen
