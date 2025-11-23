@@ -39,8 +39,7 @@ int     system_rom_size;
 
 uint8_t *expansion_rom;
 int     expansion_rom_size;
-int     baud_cur;
-
+uint8_t expansion_rom_bank;
 
 int cur_cycle = 7;
 
@@ -156,20 +155,36 @@ static int setup_sdl_audio(void) {
     return 0;
 }
 
+int system_reset(CPU *cpu) {
+    cpu->C = 0;
+    cpu->IRQ = 0;
+    cpu->NMI = 0;
+    cpu->RESET = 1;
+    expansion_rom_bank = 0;
+    
+    return 0;
+}
+
 uint8_t system_access(CPU *cpu,ACCESS *result) {
     uint8_t operand = result->value;
+    if (result->type == READ)
+        operand = 0x00;
     
-    if (result->address < 0x8000) {
+    // RAM (RW 0xxx xxxx xxxx xxxx)
+    if (!(result->address & 0x8000)) {
         if (result->type == READ) {
             operand = system_ram[result->address];
         } else {
             system_ram[result->address] = operand;
         }
-    } else if (result->address >= 0x8000 && result->type == WRITE) {
+    }
+    // BEEP (W 1xxx xxxx xxxx xxxx)
+    if (result->address & 0x8000 && result->type == WRITE) {
       beep = !beep;
-    } else if (result->address < 0xA000) {
+    }
+    // INPUT (RW 10xx xxxx xxxx xxxx)
+    if ( (result->address & 0x8000) && !(result->address & 0x4000)) {
         // Keyboard Reading
-        operand = 0x00;
         int row = -1; //(result->address & 0xF0) >> 4;
         if (!(result->address & 0x01))
           row = 0;
@@ -311,34 +326,81 @@ uint8_t system_access(CPU *cpu,ACCESS *result) {
               break;
         }
         operand |= ((!beep) & 1) << 6;
-        
-        switch ((baud_cur/208)%256) {
-            case 0:     // start bit
-            case 1:
-            // case 2
-            case 3:
-            case 4:
-            //case 5:
-            //case 6:
-            case 7:
-            //case 8:
-            //case 9    end bit
-                operand += 128;
-                break;
-            default:
-                operand += 0;
-        }
-        
-    } else if (result->address >= 0xE000) { // ROM ACCESS
+    }
+    // BIOS
+    // (RW 1x1x xxxx xxxx xxxx)
+    if ( (result->address & 0x8000) && (result->address & 0x2000)) {
         int rom_address = result->address & 0x1FFF;
-        operand = system_rom[rom_address];
-    } else if (result->address >= 0xC000) {
+        operand |= system_rom[rom_address];
+    }
+    // EXPANSION ROM (RW 110x xxxx xxxx xxxx)
+    if (result->address >= 0xC000 && result->address < 0xE000) {
         int rom_address = result->address & 0x1FFF;
-        operand = expansion_rom[rom_address];
+        operand |= expansion_rom[(expansion_rom_bank*8192 + rom_address) % expansion_rom_size];
+    }
+    // EXPANSION ROM BANK
+    // (RW 101x xxxx xxxx xxxx)
+    if (result->address >= 0xA000 && result->address < 0xC000) {
+        expansion_rom_bank = (result->address) & 0xFF;
     }
     
     return operand;
 }
+
+int initram()
+{
+    for (int i = 0; i < 0x7000; i++) {
+        system_ram[i] = rand();
+    }
+    beep = 0;
+}
+
+int loadrom(char* filename, CPU* cpu) 
+{
+	FILE *fp;
+    fp = fopen(filename, "rb");
+    
+    // get rom size
+    fseek(fp, 0L, SEEK_END);
+    system_rom_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if (system_rom_size > 128*32*1024) system_rom_size = 128*32*1024;
+    
+    // load the file into the rom
+    system_rom = realloc(system_rom, system_rom_size * sizeof(int));
+    fread(system_rom, sizeof(uint8_t), system_rom_size, fp);
+    fclose(fp);
+}
+
+int loadexrom(char* filename, CPU* cpu) 
+{
+    FILE *fp;
+    fp = fopen(filename, "rb");
+    
+    // get rom size
+    fseek(fp, 0L, SEEK_END);
+    int file_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    
+    expansion_rom_size = 8192;
+    while (expansion_rom_size < file_size) {
+        expansion_rom_size *= 2;
+    }
+    if (expansion_rom_size > 8192*256) expansion_rom_size = 8192*256;
+    expansion_rom_bank = 0;
+    
+    // load the file into the rom
+    expansion_rom = realloc(expansion_rom, expansion_rom_size * sizeof(uint8_t));
+    
+    fread(expansion_rom, sizeof(uint8_t), file_size, fp); fclose(fp);
+    
+    for (int i = file_size; i < expansion_rom_size; i++) {
+        expansion_rom[i] = 0;
+    }
+    
+    printf("Loaded expansion rom \"%s\" (%i bytes) \n", filename, expansion_rom_size);
+}
+
 
 int render_screen(SDL_Texture* texture) {
     int *pixels = NULL;
@@ -367,63 +429,13 @@ int render_screen(SDL_Texture* texture) {
     SDL_UnlockTexture(texture);
 
 }
-int initram()
-{
-    for (int i = 0; i < 0x7000; i++) {
-        system_ram[i] = rand();
-    }
-    beep = 0;
-}
-
-int loadrom(char* filename, CPU* cpu) 
-{
-	FILE *fp;
-    fp = fopen(filename, "rb");
-    
-    // get rom size
-    fseek(fp, 0L, SEEK_END);
-    system_rom_size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    if (system_rom_size > 128*32*1024) system_rom_size = 128*32*1024;
-    
-    // load the file into the rom
-    system_rom = realloc(system_rom, system_rom_size * sizeof(int));
-    fread(system_rom, sizeof(uint8_t), system_rom_size, fp);
-    fclose(fp);
-    
-    cpu->C = 0; cpu->IRQ = 0; cpu->NMI = 0; cpu->RESET = 1;
-    cpu->P  = 0x24;
-    cpu->S  = 0xFD;
-}
-
-int loadexrom(char* filename, CPU* cpu) 
-{
-	FILE *fp;
-    fp = fopen(filename, "rb");
-    
-    // get rom size
-    fseek(fp, 0L, SEEK_END);
-    expansion_rom_size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    if (expansion_rom_size > 128*32*1024) expansion_rom_size = 128*32*1024;
-    
-    // load the file into the rom
-    expansion_rom = realloc(expansion_rom, expansion_rom_size * sizeof(int));
-    fread(expansion_rom, sizeof(uint8_t), expansion_rom_size, fp);
-    fclose(fp);
-    
-    cpu->C = 0; cpu->IRQ = 0; cpu->NMI = 0; cpu->RESET = 1;
-    cpu->P  = 0x24;
-    cpu->S  = 0xFD;
-}
 
 
 int quit = 0;
 
 
 static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_length) {
-
-    /*
+     /*
      This function is called whenever the audio buffer needs to be filled to allow
      for a continuous stream of audio.
      Write samples to byteStream according to byteStreamLength.
@@ -499,13 +511,10 @@ int main(int argc, char *argv[])
     
     w6502_setup();
     CPU cpu;
-    cpu.C = 0; cpu.IRQ = 0; cpu.NMI = 0; cpu.RESET = 1;
-    cpu.P  = 0x24;
-    cpu.S  = 0xFD;
     initram();
-    
-    system_rom = realloc(system_rom, 8192 * sizeof(int));
-    expansion_rom = realloc(expansion_rom, 8192 * sizeof(int));
+    system_rom = realloc(system_rom, 8192 * sizeof(uint8_t));
+    expansion_rom = realloc(expansion_rom, 8192 * sizeof(uint8_t));
+    expansion_rom_size = 8192;
     loadrom("roms/bios.65x",&cpu);
     
     ACCESS result;
@@ -518,7 +527,10 @@ int main(int argc, char *argv[])
     double sbuff_reload = 67;
     
     SDL_Event event;
+    
     int cycles_per_line = CPU_CLOCK / 31250;
+    
+    system_reset(&cpu);
     while (!quit) {
         if (cycle_count >= cycles_per_line*524 || cycle_count == -1) {
             if (time_left()) {continue;}
@@ -545,20 +557,18 @@ int main(int argc, char *argv[])
                     initram();
                     loadexrom(filename, &cpu);
                     SDL_free(filename);
+                    system_reset(&cpu);
                     break;
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym) {
                         // Warm Reset
                         case SDLK_F5:
-                            cpu.C = 0;
-                            cpu.RESET = 1;
+                            system_reset(&cpu);
                             break;
                         // Cold Reset
                         case SDLK_F6:
                             system_rom = realloc(system_rom, 8192 * sizeof(int));
                             loadrom("roms/bios.65x",&cpu);
-                            cpu.C = 0;
-                            cpu.RESET = 1;
                             break;
                     }
                 default:
@@ -616,9 +626,7 @@ int main(int argc, char *argv[])
           system_vid[a] = system_ram[a];
         }
         
-        // baud rate counting
         cycle_count += 1;
-        baud_cur +=1;
         } 
     }
     SDL_DestroyWindow(window);

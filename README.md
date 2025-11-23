@@ -51,13 +51,13 @@ Each byte corresonds to a line of 8 horizontal pixels on the screen. The screen 
 
 This non-linear format was chosen to speed up the rendering of characters to the screen.
 
-## IO Register
+## Keyboard and Joystick
 
-```
 The state of the keyboard and joysticks can be read at the following addresses:
 
-+---------------------+-------+-----------------------+
-| Name                | Location  | Keys              |
+```
++---------------------+-------    +-------------------+
+| Name                | Address   | Value             |
 +---------------------+-----------+-------------------+
 | Keyboard Col 1      |    9FFE   | Q  A  Z  X  S  W  |
 | Keyboard Col 2      |    9FFD   | E  D  C  V  F  R  | 
@@ -66,12 +66,41 @@ The state of the keyboard and joysticks can be read at the following addresses:
 | Keyboard Col 5      |    9FEF   | O  L  M  sp en P  |
 | Joystick 1          |    8FFF   | up dw lf ri tl tr |
 | Joystick 2          |    97FF   | up dw lf ri tl tr |
-+---------------------+-----------+-------------------+ 
++---------------------+-----------+-------------------+
 ```
 
-## Beeper
+## Beeper and Tape Interface
 
-The Beeper is a 1bit register that is used for both audio generation and to save programs to tape. Its state is toggled whenever a write to the upper half of memory occurs `$8000-$FFFF`- Its current state can be read in bit 6 of the IO Register.
+The Beeper is a 1bit register that is used for both audio generation and to load and save programs to tape. It can be accessed through the following registers:
+
+```
++---------------------+-------------+-----------+
+| Name                | Address     | Value     |
++---------------------+-------------+-----------+
+| State               | 9FFF (read) | TB.. .... |
+| Toggle Beeper       | FFFF (write)| 0000 0000 |
++---------------------+-------------+-----------+
+T = Tape Input
+B = Beeper State
+```
+
+The tape interface is a 4-pin trs connector that be connected directly to a computer using an appropriate aux cable.
+
+> Note: While these registers can be accessed from alternative locations, the addresses and values on this table ensure no bus conflicts occur.
+
+## Expansion Interface
+
+The MicroMicro has an expansion interface that allows extending the base capabilities of the system in various ways:
+
+![Expansion Interface](expansion.png)
+
+## Generic Banked Expansion Rom
+
+An 8KiB region is set aside in the memory map for expansion roms (`$C000-$DFFF`), the emulator implements a simple banked rom cartridge where the current bank can be switched by reading from `$A0xx`, where `xx` is the bank number, the selected bank is also automatically set to zero on reset.
+
+The bios will automatically jump to address `$C008` on boot if it detects an expansion rom that begins with the sring `CART-RUN`.
+
+Currently expansion roms can be loaded by dragging and dropping a file into the emulator window.
 
 ## IC List
 

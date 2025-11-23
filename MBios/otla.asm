@@ -85,7 +85,7 @@ _OTLA_MAIN
     #.val re   14
     #.val rf   15
     #.val BotPTR 16
-    sta [$8000]
+    stz [$FFFF]
     #    3           3              2          2     2    | 12 cycles
     lda <rB>; lda <rB>; and %0000_00011; asl A; tax
     #    5           5            6           | 16 cycles
@@ -115,7 +115,7 @@ _OTLA_00
     dec A; bne (wait1)
     nop;nop;nop
     # 200 cycles @2mhz
-    sta [$8000]
+    stz [$FFFF]
     lda [rD]; dec A
     __wait2
         bit [$0000]
@@ -140,7 +140,7 @@ _OTLA_01
     dec A; bne (wait1)
     nop; nop
     # 200 cycles @2mhz
-    sta [$8000]
+    stz [$FFFF]
     lda [rD]; dec A
     __wait2
         bit [$0000]
@@ -164,7 +164,7 @@ _OTLA_10
     dec A; bne (wait1)
     nop; nop
     # 400 cycles @2mhz
-    sta [$8000]
+    stz [$FFFF]
     lda [rD]; asl A; dec A
     __wait2
         bit [$0000]
@@ -188,7 +188,7 @@ _OTLA_11
         bit [$0000]
     dec A; bne (wait1)
     # 400 cycles @2mhz
-    sta [$8000]
+    stz [$FFFF]
     lda [rD]; asl A; dec A
     __wait2
         bit [$0000]

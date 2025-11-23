@@ -69,14 +69,14 @@ _FileOUT
     
     __out0
         # 4+3
-        sta [$8000]; lda [speed0]
+        stz [$FFFF]; lda [speed0]
         lda [speed0]; nop
         ___loop1
             sta [$0006]; sta [$0006]
         dec A; bne (loop1)
         
         
-        sta [$8000]; lda [speed0]
+        stz [$FFFF]; lda [speed0]
         lda [speed0]; nop
         ___loop2
             sta [$0006]; sta [$0006]
@@ -84,25 +84,25 @@ _FileOUT
     jmp [OutputBit]
     
     __out1
-        sta [$8000]; lda [speed1]
+        stz [$FFFF]; lda [speed1]
         lda [speed1]; nop
         ___loop1
             sta [$0006]; sta [$0006]
         dec A; bne (loop1)
         
-        sta [$8000]; lda [speed1]
+        stz [$FFFF]; lda [speed1]
         lda [speed1]; nop
         ___loop2
             sta [$0006]; sta [$0006]
         dec A; bne (loop2)
         
-        sta [$8000]; lda [speed1]
+        stz [$FFFF]; lda [speed1]
         lda [speed1]; nop
         ___loop3
             sta [$0006]; sta [$0006]
         dec A; bne (loop3)
         
-        sta [$8000]; lda [speed1]
+        stz [$FFFF]; lda [speed1]
         lda [speed1]; nop
         ___loop4
             sta [$0006]; sta [$0006]

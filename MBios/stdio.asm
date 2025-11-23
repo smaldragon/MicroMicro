@@ -277,7 +277,7 @@ _BEEP
   sei
   ldy belLength
   __ouloop
-    sta [$C000]
+    stz [$FFFF]
     ldx <rF>
     __inloop
       pla; pha

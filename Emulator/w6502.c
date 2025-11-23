@@ -1392,7 +1392,6 @@ int cpu_tick1(CPU *cpu,ACCESS *result) {
                 case 5:
                     result->address= 0xFFFC;
                     break;
-                
                 case 6:
                     result->address= 0xFFFD;
                     break;
