@@ -1,0 +1,6 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "KiCad")(type "KiCad")(uri "/home/smal/Área de Trabalho/KiCad")(options "")(descr ""))
+  (lib (name "Library")(type "KiCad")(uri "${KIPRJMOD}/Library.pretty")(options "")(descr ""))
+  (lib (name "MicroMicro")(type "KiCad")(uri "${KIPRJMOD}/MicroMicro.pretty")(options "")(descr ""))
+)
