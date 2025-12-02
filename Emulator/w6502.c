@@ -22,7 +22,7 @@ const uint8_t FLAGi_I =  0x02;
 const uint8_t FLAGi_Z =  0x01;
 const uint8_t FLAGi_C =  0x00;
 
-typedef struct cpu {
+typedef struct {
     uint16_t PC; // Program Counter
     uint8_t A; // Accumulator
     uint8_t X; // Index X
@@ -55,11 +55,6 @@ typedef struct access {
     uint16_t address;
     uint8_t value;
 } ACCESS;
-
-
-typedef struct cpu cpu;
-
-
 
 typedef enum mode {
     A,

@@ -1,9 +1,6 @@
-if [ ! -d build/ ]; then
-    mkdir build
-fi
-if [ ! -d build/roms/ ]; then
-    mkdir build/roms
-fi
+rm -r build
+mkdir build
+cp -R ../MBios build/roms
 
 if gcc system.c -Llib -lSDL2 -lSDL2_image; then
     mv a.out build/microemu

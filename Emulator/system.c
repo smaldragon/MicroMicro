@@ -6,11 +6,22 @@
 #include <time.h>
 #include <stdlib.h>
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
+
 #include "w6502.c"
 
 /* SDL */
 
 /* must be a power of two, decrease to allow for a lower latency, increase to reduce risk of underrun. */
+SDL_Window* window;
+SDL_Renderer* renderer;
+SDL_Texture* system_screen;
+SDL_Event event;
+int quit = 0;
+
+
 static Uint16 buffer_size = 4096;
 static SDL_AudioDeviceID audio_device;
 static SDL_AudioSpec audio_spec;
@@ -23,8 +34,11 @@ int    psg_buf_size;
 
 int    beep;
 
-const int CPU_CLOCK = 4000000;
+const int CPU_CLOCK = 2000000;
 const int BAUD_CYCLES = 104 * (CPU_CLOCK/1000000);
+const int CYCLES_PER_LINE = CPU_CLOCK / 31250;
+const int CYCLES_PER_FRAME = CYCLES_PER_LINE * 524;
+
 
 const int screen_width = 256; const int screen_height = 240;
 const uint8_t* os_keyboard;
@@ -32,6 +46,7 @@ const uint8_t* os_keyboard;
 const uint32_t tick_interval = 1000/60;
 uint32_t next_time = 0;
 
+CPU cpu;
 uint8_t system_ram[0x8000];
 uint8_t system_vid[32*256];
 uint8_t *system_rom;
@@ -431,7 +446,7 @@ int render_screen(SDL_Texture* texture) {
 }
 
 
-int quit = 0;
+
 
 
 static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_length) {
@@ -474,19 +489,111 @@ static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_len
     
 }
 
+void main_loop()
+{
+    // Input
+    //SDL_PumpEvents();
+    os_keyboard = SDL_GetKeyboardState(NULL);
+
+    while(SDL_PollEvent(&event)){
+        switch (event.type) {
+        case SDL_QUIT:
+            quit = 1;
+            break;
+        // Drag and Drop
+        case SDL_DROPFILE:
+            char* filename = event.drop.file;
+            initram();
+            loadexrom(filename, &cpu);
+            SDL_free(filename);
+            system_reset(&cpu);
+            break;
+        case SDL_KEYDOWN:
+            switch (event.key.keysym.sym) {
+                // Warm Reset
+                case SDLK_F5:
+                    system_reset(&cpu);
+                    break;
+                // Cold Reset
+                case SDLK_F6:
+                    system_rom = realloc(system_rom, 8192 * sizeof(int));
+                    loadrom("roms/bios.65x",&cpu);
+                    break;
+            }
+        default:
+            break;
+        }
+    }
+
+    // Emulation
+    int cycle_count = 0;
+    while (cycle_count < CYCLES_PER_FRAME) {
+        // AUDIO
+        // TODO: FIX AUDIO BUFFER STUTTERING
+        if (audio_buf_i < 4096) {
+          if (psg_buf_i < psg_buf_size) {
+            psg_buf[psg_buf_i] = beep?2000.0f:0.0f;
+            psg_buf_i++;
+          } else {
+            double average;
+            for (int i = 0; i < psg_buf_size; i++) {
+                average += (double)psg_buf[i];
+            }
+
+            average /= psg_buf_size;
+            audio_buf[audio_buf_i*2] = average;
+            audio_buf[audio_buf_i*2+1] = average;
+            audio_buf_i++;
+            psg_buf_i=0;
+          }
+        }
+        #ifndef EMSCRIPTEN
+        else if (SDL_GetAudioDeviceStatus(audio_device) == SDL_AUDIO_PLAYING) { continue; }
+        #endif
+        // IRQ
+        if (cycle_count < CYCLES_PER_LINE*522) cpu.IRQ = 0; else cpu.IRQ = 1;
+
+        //  CPU
+        ACCESS result;
+        cpu_tick1(&cpu, &result);
+        uint8_t operand = system_access(&cpu, &result);
+        cpu_tick2(&cpu, operand);
+
+        // Display
+        int y = (cycle_count / CYCLES_PER_LINE)/2;
+        int x = (cycle_count % CYCLES_PER_LINE) / (CYCLES_PER_LINE/64);
+        if (y < 256 && x >= 32) {
+          int a = ( (y/8) ) * 256 + ( x-32 ) * 8 + ( y%8 );
+          system_vid[a] = system_ram[a];
+        }
+
+        cycle_count++;
+    }
+
+    // Render
+    while (time_left()) {}
+    render_screen(system_screen);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, system_screen, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    SDL_UpdateWindowSurface(window);
+    next_time = SDL_GetTicks() + tick_interval;
+}
+
 int main(int argc, char *argv[])
 {   
     srand(time(NULL));
     SDL_Init(SDL_INIT_VIDEO);
     
-    SDL_Window* window = SDL_CreateWindow(
+    window = SDL_CreateWindow(
         "MicroMicro",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         screen_width * 2, screen_height* 2,
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
     
-    SDL_Renderer* renderer = SDL_CreateRenderer(
+
+    renderer = SDL_CreateRenderer(
         window,
         -1,
         0
@@ -498,7 +605,7 @@ int main(int argc, char *argv[])
     // https://github.com/libsdl-org/SDL/issues/8805
     SDL_SetWindowMinimumSize(window,256,240);
     
-    SDL_Texture* system_screen = SDL_CreateTexture(
+    system_screen = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
@@ -510,7 +617,6 @@ int main(int argc, char *argv[])
     setup_sdl_audio();
     
     w6502_setup();
-    CPU cpu;
     initram();
     system_rom = realloc(system_rom, 8192 * sizeof(uint8_t));
     expansion_rom = realloc(expansion_rom, 8192 * sizeof(uint8_t));
@@ -526,109 +632,16 @@ int main(int argc, char *argv[])
     double sbuff_wait = 0;
     double sbuff_reload = 67;
     
-    SDL_Event event;
-    
-    int cycles_per_line = CPU_CLOCK / 31250;
-    
     system_reset(&cpu);
-    while (!quit) {
-        if (cycle_count >= cycles_per_line*524 || cycle_count == -1) {
-            if (time_left()) {continue;}
-            render_screen(system_screen);
-            
-            SDL_RenderClear(renderer);
-            SDL_RenderCopy(renderer, system_screen, NULL, NULL);
-            SDL_RenderPresent(renderer);
-            
-            SDL_UpdateWindowSurface(window);
-            
-            next_time = SDL_GetTicks() + tick_interval;
-            
-            //if (cycle_count > 0) cpu.IRQ = 1;
-            cycle_count = 0;
-            
-            while(SDL_PollEvent(&event)){
-               switch (event.type) {
-                case SDL_QUIT:
-                    quit = 1; break;
-                // Drag and Drop
-                case SDL_DROPFILE:
-                    char* filename = event.drop.file;
-                    initram();
-                    loadexrom(filename, &cpu);
-                    SDL_free(filename);
-                    system_reset(&cpu);
-                    break;
-                case SDL_KEYDOWN:
-                    switch (event.key.keysym.sym) {
-                        // Warm Reset
-                        case SDLK_F5:
-                            system_reset(&cpu);
-                            break;
-                        // Cold Reset
-                        case SDLK_F6:
-                            system_rom = realloc(system_rom, 8192 * sizeof(int));
-                            loadrom("roms/bios.65x",&cpu);
-                            break;
-                    }
-                default:
-                	break;
-               }
-            }
-          SDL_PumpEvents();
-          os_keyboard = SDL_GetKeyboardState(NULL);
-        }
-        else {
-        if (cycle_count < cycles_per_line*522) cpu.IRQ = 0; else cpu.IRQ = 1;
-        //printf("\n\nø2 - %d\n", cur_cycle++);
-        
-        if (audio_buf_i < 4096) {
-          if (psg_buf_i < psg_buf_size) {
-            psg_buf[psg_buf_i] = beep?2000.0f:0.0f;
-            psg_buf_i++;
-          } else {
-            double average;
-            for (int i = 0; i < psg_buf_size; i++) {
-                average += (double)psg_buf[i];
-            }
-            
-            average /= psg_buf_size;
-            audio_buf[audio_buf_i*2] = average;
-            audio_buf[audio_buf_i*2+1] = average;
-            audio_buf_i++;
-            psg_buf_i=0;
-          }
-        } else { continue; }
-        
-        cpu_tick1(&cpu, &result);
-        
-        uint8_t operand = system_access(&cpu, &result);
-        
-        //printf(" , %xm %x @%x", result.type, operand, result.address);
-        
-        cpu_tick2(&cpu, operand);
-        
-        if (0) {
-            cpu_state(&cpu);
-            if (result.type == WRITE) {
-            printf("Wrote %X(%c) to %4X \n", operand, operand, result.address);
-            }
-            else {
-            printf("Read %X(%c) from %4X \n", operand, operand, result.address);
-            }
-        }
-        int y = (cycle_count / cycles_per_line)/2;
-        int x = (cycle_count % cycles_per_line) / (cycles_per_line/64);
-        
-        if (y < 256 && x >= 32) {
-          int a = ( (y/8) ) * 256 + ( x-32 ) * 8 + ( y%8 );
-          //printf("X=%i Y=%i A=%i\n",x,y,a);
-          system_vid[a] = system_ram[a];
-        }
-        
-        cycle_count += 1;
-        } 
+
+    #ifdef EMSCRIPTEN
+    emscripten_set_main_loop(main_loop, -1, 1);
+    #else
+    while (!quit){
+      main_loop();
     }
+    #endif
+
     SDL_DestroyWindow(window);
     SDL_Quit();
     
