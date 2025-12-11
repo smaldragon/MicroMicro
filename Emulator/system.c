@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <termios.h>
-#include <unistd.h>
 #include <time.h>
-#include <stdlib.h>
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
@@ -13,42 +9,25 @@
 #include "w6502.c"
 
 /* SDL */
-
-/* must be a power of two, decrease to allow for a lower latency, increase to reduce risk of underrun. */
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Texture* system_screen;
 SDL_Event event;
 int quit = 0;
 
-
-static Uint16 buffer_size = 4096;
-static SDL_AudioDeviceID audio_device;
-static SDL_AudioSpec audio_spec;
-static int sample_rate = 44100;
-float* audio_buf;
-int    audio_buf_i;
-float* psg_buf;
-int    psg_buf_i;
-int    psg_buf_size;
-
-int    beep;
-
+// Timing
 const int CPU_CLOCK = 2000000;
-const int BAUD_CYCLES = 104 * (CPU_CLOCK/1000000);
 const int CYCLES_PER_LINE = CPU_CLOCK / 31250;
 const int CYCLES_PER_FRAME = CYCLES_PER_LINE * 524;
-
-
-const int screen_width = 256; const int screen_height = 240;
-const uint8_t* os_keyboard;
 
 const uint32_t tick_interval = 1000/60;
 uint32_t next_time = 0;
 
+// Hardware
 CPU cpu;
 uint8_t system_ram[0x8000];
 uint8_t system_vid[32*256];
+const int screen_width = 256; const int screen_height = 240;
 uint8_t *system_rom;
 int     system_rom_size;
 
@@ -56,32 +35,20 @@ uint8_t *expansion_rom;
 int     expansion_rom_size;
 uint8_t expansion_rom_bank;
 
-int cur_cycle = 7;
+int    beep;
+const uint8_t* os_keyboard;
 
-int font[256][8][8];
-
-
-uint32_t palette[16] = {
-    0x000000,
-    0x630000,
-    0x916300,
-    0xFF6300,
-    
-    0x009100,
-    0x639100,
-    0x91FF00,
-    0xFFFF00,
-    
-    0x0000FF,
-    0x6300FF,
-    0x9163FF,
-    0xFF63FF,
-    
-    0x0091FF,
-    0x6391FF,
-    0x91FFFF,
-    0xF2FFFF,
-};
+// Audio Buffer
+static Uint16 buffer_size = 4096;
+static SDL_AudioDeviceID audio_device;
+static SDL_AudioSpec audio_spec;
+static int sample_rate = 48000;
+uint16_t* audio_buf;
+int    audio_buf_i;
+int    audio_buf_size;
+float* psg_buf;
+int    psg_buf_i;
+int    psg_buf_size;
 
 uint32_t time_left(void)
 {
@@ -94,14 +61,6 @@ uint32_t time_left(void)
         return next_time - now;
 }
 
-
-int cpu_state(CPU* cpu) {
-    //printf("CYCLE: %x | PC: %x INSTRUCTION: %x A: %x X: %x Y: %x STACK POINTER: %x FLAGS: %x", cpu->C, cpu->PC, cpu->I, cpu->A, cpu->X, cpu->Y, cpu->S, cpu->P);
-    if (cpu->C == 1)
-    printf("A:%X X:%X Y:%X P:%X SP:%X I:%X C:%X | PC:%4X \n", cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S, cpu->I, cpu->C, cpu->PC);
-}
-
-static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_length);
 static int setup_sdl_audio(void) {
 
     SDL_AudioSpec want;
@@ -118,11 +77,6 @@ static int setup_sdl_audio(void) {
     want.channels = 2;
     want.samples = buffer_size;
 
-    /*
-     Tell SDL to call this function (audio_callback) that we have defined whenever there is an audiobuffer ready to be filled.
-     */
-    want.callback = audio_callback;
-
     if(1) {
         printf("\naudioSpec want\n");
         printf("----------------\n");
@@ -133,15 +87,14 @@ static int setup_sdl_audio(void) {
     }
 
     audio_device = SDL_OpenAudioDevice(NULL, 0, &want, &audio_spec, 0);
-
+    
     if(1) {
-        printf("\naudioSpec get\n");
+        printf("\naudioSpec got\n");
         printf("----------------\n");
         printf("sample rate:%d\n", audio_spec.freq);
         printf("channels:%d\n", audio_spec.channels);
         printf("samples:%d\n", audio_spec.samples);
-        printf("size:%d\n", audio_spec.size);
-        printf("----------------\n");
+        printf("----------------\n\n");
     }
 
     if (audio_device == 0) {
@@ -159,7 +112,8 @@ static int setup_sdl_audio(void) {
     }
 
     buffer_size = audio_spec.samples;
-    audio_buf = (float*) malloc(buffer_size*2*sizeof(float));
+    audio_buf_size = buffer_size*2*sizeof(uint16_t);
+    audio_buf = (uint16_t*) malloc(audio_buf_size);
     audio_buf_i = 0;
     
     psg_buf_size = CPU_CLOCK / (int)audio_spec.freq;
@@ -445,50 +399,6 @@ int render_screen(SDL_Texture* texture) {
 
 }
 
-
-
-
-
-static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_length) {
-     /*
-     This function is called whenever the audio buffer needs to be filled to allow
-     for a continuous stream of audio.
-     Write samples to byteStream according to byteStreamLength.
-     The audio buffer is interleaved, meaning that both left and right channels exist in the same
-     buffer.
-     */
-
-    int i;
-    int16_t *s_byte_stream;
-    int remain;
-    
-    /* zero the buffer */
-    memset(byte_stream, 0, byte_stream_length);
-
-    if(quit) {
-        return;
-    }
-
-    /* cast buffer as 16bit signed int */
-    s_byte_stream = (int16_t*)byte_stream;
-
-    /* buffer is interleaved, so get the length of 1 channel */
-    remain = byte_stream_length / 2;
-
-    for (i = 0; i < remain; i += 2) {
-        float average_l = audio_buf[i];
-        float average_r = audio_buf[i];
-        
-        s_byte_stream[i] = (uint16_t)average_l;
-        s_byte_stream[i+1] = (uint16_t)average_r;
-    }
-    
-    //printf ("%i\n",audio_buf_i);
-    audio_buf_i = 0;
-    
-    
-}
-
 void main_loop()
 {
     // Input
@@ -527,29 +437,39 @@ void main_loop()
 
     // Emulation
     int cycle_count = 0;
+    
+    // Fallback if audio device isn't playing
+    int audio_timeout = SDL_GetTicks() + tick_interval * 5;
     while (cycle_count < CYCLES_PER_FRAME) {
+        
         // AUDIO
-        // TODO: FIX AUDIO BUFFER STUTTERING
-        if (audio_buf_i < 4096) {
-          if (psg_buf_i < psg_buf_size) {
-            psg_buf[psg_buf_i] = beep?2000.0f:0.0f;
-            psg_buf_i++;
-          } else {
-            double average;
-            for (int i = 0; i < psg_buf_size; i++) {
-                average += (double)psg_buf[i];
-            }
-
-            average /= psg_buf_size;
-            audio_buf[audio_buf_i*2] = average;
-            audio_buf[audio_buf_i*2+1] = average;
-            audio_buf_i++;
-            psg_buf_i=0;
+        if (SDL_GetQueuedAudioSize(audio_device) > audio_buf_size * 3) {
+          if (SDL_GetTicks() < audio_timeout) {
+            continue;
           }
+        } else {
+        if (psg_buf_i < psg_buf_size) {
+          psg_buf[psg_buf_i] = beep?2000.0f:0.0f;
+          psg_buf_i++;
         }
-        #ifndef EMSCRIPTEN
-        else if (SDL_GetAudioDeviceStatus(audio_device) == SDL_AUDIO_PLAYING) { continue; }
-        #endif
+        if (psg_buf_i == psg_buf_size) {
+          double average;
+          for (int i = 0; i < psg_buf_size; i++) {
+              average += (double)psg_buf[i];
+          }
+
+          average /= psg_buf_size;
+          audio_buf[audio_buf_i*2] = (uint16_t)average;
+          audio_buf[audio_buf_i*2+1] = (uint16_t)average;
+          audio_buf_i++;
+          psg_buf_i=0;
+        }
+        if (audio_buf_i >= buffer_size) {
+          audio_buf_i = 0;
+          SDL_QueueAudio(audio_device, audio_buf, audio_buf_size);
+        }
+        }
+        
         // IRQ
         if (cycle_count < CYCLES_PER_LINE*522) cpu.IRQ = 0; else cpu.IRQ = 1;
 
@@ -592,7 +512,6 @@ int main(int argc, char *argv[])
         SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
     );
     
-
     renderer = SDL_CreateRenderer(
         window,
         -1,
@@ -618,19 +537,10 @@ int main(int argc, char *argv[])
     
     w6502_setup();
     initram();
-    system_rom = realloc(system_rom, 8192 * sizeof(uint8_t));
+    loadrom("roms/bios.65x",&cpu);
+    // Empty Expansion Rom
     expansion_rom = realloc(expansion_rom, 8192 * sizeof(uint8_t));
     expansion_rom_size = 8192;
-    loadrom("roms/bios.65x",&cpu);
-    
-    ACCESS result;
-    
-    int wait = 0;
-    int int_count = 0;
-    int cycle_count = -1;
-    
-    double sbuff_wait = 0;
-    double sbuff_reload = 67;
     
     system_reset(&cpu);
 
