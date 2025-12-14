@@ -134,8 +134,8 @@ uint8_t op_codes[256] = {
 };
 
 uint8_t op_modes[256] = {
-//    0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-/*0*/INT ,IZX,IMP,IMP, Z , Z , Z , Z , SH ,IMD,ACC,IMP, A , A , A , R ,
+//    0    1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+/*0*/INT ,IZX,IMP,IMP, Z , Z , Z , Z , SH,IMD,ACC,IMP, A , A , A , R ,
 /*1*/ R  ,IZY, IZ,IMP, Z , ZX, ZX, Z ,IMP, AY,ACC,IMP, A , AX, AX, R ,
 /*2*/AJSR,IZX,IMP,IMP, Z , Z , Z , Z ,SL ,IMD,ACC,IMP, A , A , A , R ,
 /*3*/ R  ,IZY, IZ,IMP, ZX, ZX, ZX, Z ,IMP, AY,ACC,IMP, AX, AX, AX, R ,
@@ -198,6 +198,10 @@ uint8_t nop_p2(CPU *cpu, uint8_t operand) {
     return operand;
 }
 
+/*============================
+    ARITHMETIC MATH
+ ===========================*/
+// | ADC | ADd with Carry
 uint8_t adc_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -234,6 +238,7 @@ uint8_t sbc_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
 }
+// | SBC | SuBtract with Carry
 uint8_t sbc_p2(CPU *cpu, uint8_t operand) {
     uint8_t acc = cpu->A;
     uint8_t carry = (! ((cpu->P >> FLAGi_C) & 1 ));
@@ -260,10 +265,80 @@ uint8_t sbc_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
+/*============================
+    INC AND DEC
+ ===========================*/
+// | INA | INcrement Accumulator
+uint8_t ina_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->PC;
+}
+uint8_t ina_p2(CPU *cpu, uint8_t operand) {
+    cpu->A = cpu->A + 1;
+    cpu->P = calc_NZ(cpu->P,cpu->X);
+}
+// | DEA | DEcrement Accumulator
+uint8_t dea_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->PC;
+}
+uint8_t dea_p2(CPU *cpu, uint8_t operand) {
+    cpu->A = cpu->A - 1;
+    cpu->P = calc_NZ(cpu->P,cpu->A);
+}
+// | INX | INcrement X index
+uint8_t inx_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->PC;
+}
+uint8_t inx_p2(CPU *cpu, uint8_t operand) {
+    cpu->X = cpu->X + 1;
+    cpu->P = calc_NZ(cpu->P,cpu->X);
+}
+// | DEX | DEcrement X index
+uint8_t dex_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->PC;
+}
+uint8_t dex_p2(CPU *cpu, uint8_t operand) {
+    cpu->X = cpu->X - 1;
+    cpu->P = calc_NZ(cpu->P,cpu->X);
+}
+// | INY | INcrement Y index
+uint8_t iny_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->PC;
+}
+uint8_t iny_p2(CPU *cpu, uint8_t operand) {
+    cpu->Y = cpu->Y + 1;
+    cpu->P = calc_NZ(cpu->P,cpu->Y);
+}
+// | DEY | DEcrement Y index
+uint8_t dey_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->PC;
+}
+uint8_t dey_p2(CPU *cpu, uint8_t operand) {
+    cpu->Y = cpu->Y - 1;
+    cpu->P = calc_NZ(cpu->P,cpu->Y);
+}
+// | INC | INCrement memory
+uint8_t inc_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->TARGET;
+}
+uint8_t inc_p2(CPU *cpu, uint8_t operand) {
+    operand = operand + 1;
+    cpu->P = calc_NZ(cpu->P,operand);
+    return operand;
+}
+// | DEC | DECrement memory
+uint8_t dec_p1(CPU *cpu,ACCESS *result) {
+    result->type = READ; result->address = cpu->TARGET;
+}
+uint8_t dec_p2(CPU *cpu, uint8_t operand) {
+    operand = operand - 1;
+    cpu->P = calc_NZ(cpu->P,operand);
+    return operand;
+}
 
 /*============================
     BOOLEAN MATH
  ===========================*/
+// | AND | AND with accumulator
 uint8_t and_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -274,6 +349,7 @@ uint8_t and_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
+// | EOR | Exclusive OR with accumulator
 uint8_t eor_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -284,6 +360,7 @@ uint8_t eor_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
+// | ORA | OR with Accumulator
 uint8_t ora_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -294,9 +371,48 @@ uint8_t ora_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
+
+// | RMB | Reset (Clear) Memory Bit
+uint8_t rmb_p1(CPU *cpu,ACCESS *result) { }
+uint8_t rmb_p2(CPU *cpu, uint8_t operand) {
+    uint8_t bit = ((1) << ((cpu->I & 0x70) >> 4)) ^ 0xFF;
+
+    operand = operand & bit;
+    return operand;
+}
+// | SMB | Set Memory Bit
+uint8_t smb_p1(CPU *cpu,ACCESS *result) { }
+uint8_t smb_p2(CPU *cpu, uint8_t operand) {
+    uint8_t bit = (1) << ((cpu->I & 0x70) >> 4);
+
+    operand = operand | bit;
+
+    return operand;
+}
+
+// | TRB | Test and Reset (clear) Bits
+uint8_t trb_p1(CPU *cpu,ACCESS *result) { }
+uint8_t trb_p2(CPU *cpu, uint8_t operand) {
+    uint8_t zero = (operand & cpu->A) == 0;
+    cpu->P = (cpu->P & 0xFD) + (zero << 1);
+    operand = operand & (cpu->A ^ 0xFF);
+
+    return operand;
+}
+// | TSB | Test and Set Bits
+uint8_t tsb_p1(CPU *cpu,ACCESS *result) { }
+uint8_t tsb_p2(CPU *cpu, uint8_t operand) {
+    uint8_t zero = (operand & cpu->A) == 0;
+    cpu->P = (cpu->P & 0xFD) + (zero << 1);
+    operand = operand | cpu->A;
+
+    return operand;
+}
+
 /*============================
     BIT TESTING
  ===========================*/
+// | BIT | BIT test
 uint8_t bit_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -307,7 +423,7 @@ uint8_t bit_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
-
+// | CMP | CoMPare with accumulator
 uint8_t cmp_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -328,7 +444,7 @@ uint8_t cmp_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
-
+// | CPX | ComPare with X
 uint8_t cpx_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -349,6 +465,7 @@ uint8_t cpx_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
+// | CPY | ComPare with Y
 uint8_t cpy_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -372,7 +489,7 @@ uint8_t cpy_p2(CPU *cpu, uint8_t operand) {
 /*============================
     BIT SHIFTING
  ===========================*/
-// Rotate Left
+// | ROL | ROtate Left
 uint8_t rol_p1(CPU *cpu,ACCESS *result) {
     if (cpu->MODE == ACC) {
         result->type = READ;
@@ -401,7 +518,7 @@ uint8_t rol_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
-// Shift Left
+// | ASL | Arithmetic Shift Left
 uint8_t asl_p1(CPU *cpu,ACCESS *result) {
     if (cpu->MODE == ACC) {
         result->type = READ;
@@ -428,7 +545,7 @@ uint8_t asl_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
-// Rotate Right
+// | ROL | ROtate Right
 uint8_t ror_p1(CPU *cpu,ACCESS *result) {
     if (cpu->MODE == ACC) {
         result->type = READ;
@@ -458,7 +575,7 @@ uint8_t ror_p2(CPU *cpu, uint8_t operand) {
     
     return operand;
 }
-// Shift Right
+// | LSR | Logical Shift Right
 uint8_t lsr_p1(CPU *cpu,ACCESS *result) {
     if (cpu->MODE == ACC) {
         result->type = READ;
@@ -539,12 +656,24 @@ uint8_t bmi_p2(CPU *cpu,uint8_t operand) {
 uint8_t bra_p2(CPU *cpu,uint8_t operand) {
     return branch_p2(cpu,operand, 1);
 }
+// | BBR | Branch on Bit Reset (Clear)
+uint8_t bbr_p2(CPU *cpu, uint8_t operand) {
+    uint8_t bit = (1) << ((cpu->I & 0x70) >> 4);
+
+    return branch_p2(cpu,operand, !(operand & bit));
+}
+// | BBS | Branch on Bit Set
+uint8_t bbs_p2(CPU *cpu, uint8_t operand) {
+    uint8_t bit = (1) << ((cpu->I & 0x70) >> 4);
+
+    return branch_p2(cpu,operand, (operand & bit));
+}
 
 /*============================
     STORING
  ===========================*/
 
-// Store A
+// | STA | STore A
 uint8_t sta_p1(CPU *cpu,ACCESS *result) {
     result->type = WRITE;
     result->address = cpu->TARGET;
@@ -553,8 +682,7 @@ uint8_t sta_p1(CPU *cpu,ACCESS *result) {
 uint8_t sta_p2(CPU *cpu, uint8_t operand) {    
     return operand;
 }
-
-// Store X
+// | STX | STore X index
 uint8_t stx_p1(CPU *cpu,ACCESS *result) {
     result->type = WRITE;
     result->address = cpu->TARGET;
@@ -563,8 +691,7 @@ uint8_t stx_p1(CPU *cpu,ACCESS *result) {
 uint8_t stx_p2(CPU *cpu, uint8_t operand) {    
     return operand;
 }
-
-// Store Y
+// | STY | STore Y index
 uint8_t sty_p1(CPU *cpu,ACCESS *result) {
     result->type = WRITE;
     result->address = cpu->TARGET;
@@ -573,8 +700,7 @@ uint8_t sty_p1(CPU *cpu,ACCESS *result) {
 uint8_t sty_p2(CPU *cpu, uint8_t operand) {    
     return operand;
 }
-
-// Store Zero
+// | STZ | STore Zero
 uint8_t stz_p1(CPU *cpu,ACCESS *result) {
     result->type = WRITE;
     result->address = cpu->TARGET;
@@ -587,7 +713,7 @@ uint8_t stz_p2(CPU *cpu, uint8_t operand) {
     LOADING
  ===========================*/
 
-// Load A
+// | LDA | LoaD Accumulator
 uint8_t lda_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -597,7 +723,7 @@ uint8_t lda_p2(CPU *cpu, uint8_t operand) {
     cpu->P=calc_NZ(cpu->P,operand);
     return operand;
 }
-// Load X
+// | LDX | LoaD X index
 uint8_t ldx_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -607,7 +733,7 @@ uint8_t ldx_p2(CPU *cpu, uint8_t operand) {
     cpu->P=calc_NZ(cpu->P,operand);
     return operand;
 }
-// Load Y
+// | LDY | LoaD Y index
 uint8_t ldy_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->TARGET;
@@ -620,7 +746,7 @@ uint8_t ldy_p2(CPU *cpu, uint8_t operand) {
 /*============================
     Register Transfer
  ===========================*/
-//--
+// | TAX | Transfer Accumulator to X index
 uint8_t tax_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->PC;
@@ -630,7 +756,7 @@ uint8_t tax_p2(CPU *cpu, uint8_t operand) {
     cpu->P=calc_NZ(cpu->P,cpu->X);
     return operand;
 }
-//
+// | TXA | Transfer X index to Accumulator
 uint8_t txa_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->PC;
@@ -640,7 +766,7 @@ uint8_t txa_p2(CPU *cpu, uint8_t operand) {
     cpu->P=calc_NZ(cpu->P,cpu->A);
     return operand;
 }
-//--
+// | TAY | Transfer Accumulator to Y index
 uint8_t tay_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->PC;
@@ -650,7 +776,7 @@ uint8_t tay_p2(CPU *cpu, uint8_t operand) {
     cpu->P=calc_NZ(cpu->P,cpu->Y);
     return operand;
 }
-//
+// | TYA | Transfer Y index to Accumulator
 uint8_t tya_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->PC;
@@ -660,7 +786,7 @@ uint8_t tya_p2(CPU *cpu, uint8_t operand) {
     cpu->P=calc_NZ(cpu->P,cpu->A);
     return operand;
 }
-//--
+// | TXS | Transfer X index to Stack pointer
 uint8_t txs_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->PC;
@@ -669,7 +795,7 @@ uint8_t txs_p2(CPU *cpu, uint8_t operand) {
     cpu->S = cpu->X;
     return operand;
 }
-//
+// | TSX | Transfer Stack pointer to X index
 uint8_t tsx_p1(CPU *cpu,ACCESS *result) {
     result->type = READ;
     result->address = cpu->PC;
@@ -683,46 +809,49 @@ uint8_t tsx_p2(CPU *cpu, uint8_t operand) {
 /*============================
     FLAGS
  ===========================*/
- // Carry
+// | SEC | SEt Carry flag
 uint8_t sec_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
 uint8_t sec_p2(CPU *cpu, uint8_t operand) {
     cpu->P = cpu->P | FLAGb_C; return operand;
 }
+// | CLC | CLear Carry flag
 uint8_t clc_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
 uint8_t clc_p2(CPU *cpu, uint8_t operand) {
     cpu->P = cpu->P & (FLAGb_C ^ 0xFF); return operand;
 }
- // Decimal
+// | SED | SEt Decimal flag
 uint8_t sed_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
 uint8_t sed_p2(CPU *cpu, uint8_t operand) {
     cpu->P = cpu->P | FLAGb_D; return operand;
 }
+// | CLD | CLear Decimal flag
 uint8_t cld_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
 uint8_t cld_p2(CPU *cpu, uint8_t operand) {
     cpu->P = cpu->P & (FLAGb_D ^ 0xFF); return operand;
 }
- // Interrupt
+// | SEI | SEt Interrupt flag
 uint8_t sei_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
 uint8_t sei_p2(CPU *cpu, uint8_t operand) {
     cpu->P = cpu->P | FLAGb_I; return operand;
 }
+// | CLI | CLear Interrupt flag
 uint8_t cli_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
 uint8_t cli_p2(CPU *cpu, uint8_t operand) {
     cpu->P = cpu->P & (FLAGb_I ^ 0xFF); return operand;
 }
- // Overflow
+// | CLV | CLear oVerflow flag
 uint8_t clv_p1(CPU *cpu,ACCESS *result) {
     result->type = READ; result->address = cpu->PC;
 }
@@ -731,81 +860,15 @@ uint8_t clv_p2(CPU *cpu, uint8_t operand) {
 }
 
 /*============================
-    REGISTER INC AND DEC
- ===========================*/
-  // A
-uint8_t ina_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->PC;
-}
-uint8_t ina_p2(CPU *cpu, uint8_t operand) {
-    cpu->A = cpu->A + 1;
-    cpu->P = calc_NZ(cpu->P,cpu->X);
-}
-uint8_t dea_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->PC;
-}
-uint8_t dea_p2(CPU *cpu, uint8_t operand) {
-    cpu->A = cpu->A - 1;
-    cpu->P = calc_NZ(cpu->P,cpu->A);
-}
-  // X
-uint8_t inx_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->PC;
-}
-uint8_t inx_p2(CPU *cpu, uint8_t operand) {
-    cpu->X = cpu->X + 1;
-    cpu->P = calc_NZ(cpu->P,cpu->X);
-}
-uint8_t dex_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->PC;
-}
-uint8_t dex_p2(CPU *cpu, uint8_t operand) {
-    cpu->X = cpu->X - 1;
-    cpu->P = calc_NZ(cpu->P,cpu->X);
-}
- // Y
-uint8_t iny_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->PC;
-}
-uint8_t iny_p2(CPU *cpu, uint8_t operand) {
-    cpu->Y = cpu->Y + 1;
-    cpu->P = calc_NZ(cpu->P,cpu->Y);
-}
-uint8_t dey_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->PC;
-}
-uint8_t dey_p2(CPU *cpu, uint8_t operand) {
-    cpu->Y = cpu->Y - 1;
-    cpu->P = calc_NZ(cpu->P,cpu->Y);
-}
- // MEMORY
-uint8_t inc_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->TARGET;
-}
-uint8_t inc_p2(CPU *cpu, uint8_t operand) {
-    operand = operand + 1;
-    cpu->P = calc_NZ(cpu->P,operand);
-    return operand;
-}
-uint8_t dec_p1(CPU *cpu,ACCESS *result) {
-    result->type = READ; result->address = cpu->TARGET;
-}
-uint8_t dec_p2(CPU *cpu, uint8_t operand) {
-    operand = operand - 1;
-    cpu->P = calc_NZ(cpu->P,operand);
-    return operand;
-}
-
-/*============================
     STACK
  ===========================*/
- // ACCUMULATOR
+// | PHA | PusH Accumulator
 uint8_t pha_p1(CPU *cpu,ACCESS *result) { 
     result->type = WRITE; result->address = cpu->S + 0x100;
     result->value = cpu->A;
 }
 uint8_t pha_p2(CPU *cpu, uint8_t operand) { return operand; }
-
+// | PLA | PulL Accumulator
 uint8_t pla_p1(CPU *cpu,ACCESS *result) { 
     result->type = READ; result->address = cpu->S + 0x100;
 }
@@ -813,48 +876,50 @@ uint8_t pla_p2(CPU *cpu, uint8_t operand) {
     cpu->A = operand; 
     cpu->P = calc_NZ(cpu->P,operand);
 }
- // X INDEX
+
+// | PHX | PusH X index
 uint8_t phx_p1(CPU *cpu,ACCESS *result) { 
     result->type = WRITE; result->address = cpu->S + 0x100;
     result->value = cpu->X;
 }
 uint8_t phx_p2(CPU *cpu, uint8_t operand) { return operand; }
 
+// | PLX | PulL X index
 uint8_t plx_p1(CPU *cpu,ACCESS *result) { 
     result->type = READ; result->address = cpu->S + 0x100;
 }
 uint8_t plx_p2(CPU *cpu, uint8_t operand) { cpu->X = operand; cpu->P = calc_NZ(cpu->P,operand);}
- // Y INDEX
+
+// | PHY | PusH Y index
 uint8_t phy_p1(CPU *cpu,ACCESS *result) { 
     result->type = WRITE; result->address = cpu->S + 0x100;
     result->value = cpu->Y;
 }
 uint8_t phy_p2(CPU *cpu, uint8_t operand) { return operand; }
 
+// | PLY | PulL Y index
 uint8_t ply_p1(CPU *cpu,ACCESS *result) { 
     result->type = READ; result->address = cpu->S + 0x100;
 }
 uint8_t ply_p2(CPU *cpu, uint8_t operand) { cpu->Y = operand; cpu->P = calc_NZ(cpu->P,operand);}
- // P FLAGS
+
+// | PHP | PusH Processor status
 uint8_t php_p1(CPU *cpu,ACCESS *result) { 
     result->type = WRITE; result->address = cpu->S + 0x100;
     result->value = cpu->P | 0x10;
 }
 uint8_t php_p2(CPU *cpu, uint8_t operand) { return operand; }
 
+// | PLP | PulL Processor status
 uint8_t plp_p1(CPU *cpu,ACCESS *result) { 
     result->type = READ; result->address = cpu->S + 0x100;
 }
 uint8_t plp_p2(CPU *cpu, uint8_t operand) { cpu->P = operand;}
 
-
-// Uninplemented
-
-uint8_t bbr_p1(CPU *cpu,ACCESS *result) { }
-uint8_t bbr_p2(CPU *cpu, uint8_t operand) { }
-uint8_t bbs_p1(CPU *cpu,ACCESS *result) { }
-uint8_t bbs_p2(CPU *cpu, uint8_t operand) { }
-
+/*============================
+    Jumps and Subroutines
+ ===========================*/
+// | BRK | BReaK
 uint8_t brk_p1(CPU *cpu,ACCESS *result) {
     cpu->C += 1;
     cpu->P |= 0x04;
@@ -903,6 +968,7 @@ uint8_t brk_p2(CPU *cpu, uint8_t operand) {
     }
 }
 
+// | JMP | JuMP
 uint8_t jmp_p1(CPU *cpu,ACCESS *result) { 
     result->type = READ;
 }
@@ -910,39 +976,37 @@ uint8_t jmp_p2(CPU *cpu, uint8_t operand) {
     cpu->PC = cpu->TARGET - 1;
 }
 
+// | JSR | Jump to SubRoutine
 uint8_t jsr_p1(CPU *cpu,ACCESS *result) { }
 uint8_t jsr_p2(CPU *cpu, uint8_t operand) { }
 
-uint8_t rmb_p1(CPU *cpu,ACCESS *result) { }
-uint8_t rmb_p2(CPU *cpu, uint8_t operand) { }
-
+// | RTI | ReTurn from Interrupt
 uint8_t rti_p1(CPU *cpu,ACCESS *result) { }
 uint8_t rti_p2(CPU *cpu, uint8_t operand) { }
+// | RTS | ReTurn from Subroutine
 uint8_t rts_p1(CPU *cpu,ACCESS *result) { }
 uint8_t rts_p2(CPU *cpu, uint8_t operand) { }
 
-uint8_t smb_p1(CPU *cpu,ACCESS *result) { }
-uint8_t smb_p2(CPU *cpu, uint8_t operand) { }
-
-uint8_t trb_p1(CPU *cpu,ACCESS *result) { }
-uint8_t trb_p2(CPU *cpu, uint8_t operand) { }
-uint8_t tsb_p1(CPU *cpu,ACCESS *result) { }
-uint8_t tsb_p2(CPU *cpu, uint8_t operand) { }
-
+/*============================
+    WAIT AND HOLD
+ ===========================*/
+// | WAI | WAit for Interrupt
 uint8_t wai_p1(CPU *cpu,ACCESS *result) { }
 uint8_t wai_p2(CPU *cpu, uint8_t operand) {
     if (cpu->IRQ || cpu->NMI || cpu->RESET) {
         cpu_opend(cpu);
     }
 }
+// | STP | STop Processor
 uint8_t stp_p1(CPU *cpu,ACCESS *result) { }
 uint8_t stp_p2(CPU *cpu, uint8_t operand) { 
     if (cpu->RESET) {
         cpu_opend(cpu);
     }
 }
-
-// MODES
+/*============================
+    MODES
+ ===========================*/
 // HLD mode
 uint8_t mode_hold_p1(CPU *cpu,ACCESS *result) {
     cpu->C = 1;
@@ -978,8 +1042,9 @@ uint8_t mode_bra_p1(CPU *cpu,ACCESS *result) {
       case 1:
         cpu->PC += 1;
         cpu->TARGET = cpu->PC;
-      case 2:
         phase_1[op_codes[cpu->I]](cpu, result);
+        break;
+      case 2:
         break;
     }
 }
@@ -993,6 +1058,46 @@ uint8_t mode_bra_p2(CPU *cpu, uint8_t operand) {
       case 2:
         cpu_opend(cpu);
         break;
+    }
+}
+
+uint8_t mode_test_bra_p1(CPU *cpu,ACCESS *result) {
+    switch (cpu->C) {
+        case 1:
+            cpu->PC += 1;
+            result->type = READ;
+            result->address = cpu->PC;
+            break;
+        case 2:
+            result->type=READ;
+            result->address = cpu->TARGET;
+            break;
+        case 3:
+            break;
+        case 4:
+            cpu->PC += 1;
+            cpu->TARGET = cpu->PC;
+            phase_1[op_codes[cpu->I]](cpu, result);
+            break;
+        case 5:
+            break;
+    }
+}
+uint8_t mode_test_bra_p2(CPU *cpu, uint8_t operand) {
+    switch (cpu->C) {
+        case 1:
+            cpu->TARGET = operand; break;
+        case 2:
+            cpu->DL = operand; break;
+        case 3:
+            break;
+        case 4:
+            uint8_t branched = phase_2[op_codes[cpu->I]](cpu, cpu->DL);
+            if (!branched)
+            cpu_opend(cpu);
+            break;
+        case 5:
+            cpu_opend(cpu); break;
     }
 }
 
@@ -1499,8 +1604,8 @@ int w6502_setup() {
     phase_1[ADC] = adc_p1; phase_2[ADC] = adc_p2;
     phase_1[AND] = and_p1; phase_2[AND] = and_p2;
     phase_1[ASL] = asl_p1; phase_2[ASL] = asl_p2;
-    phase_1[BBR] = bbr_p1; phase_2[BBR] = bbr_p2;
-    phase_1[BBS] = bbs_p1; phase_2[BBS] = bbs_p2;
+    phase_1[BBR] = bra_p1; phase_2[BBR] = bbr_p2;
+    phase_1[BBS] = bra_p1; phase_2[BBS] = bbs_p2;
     phase_1[BCC] = bra_p1; phase_2[BCC] = bcc_p2;
     phase_1[BCS] = bra_p1; phase_2[BCS] = bcs_p2;
     phase_1[BEQ] = bra_p1; phase_2[BEQ] = beq_p2;
