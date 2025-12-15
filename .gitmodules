@@ -1,0 +1,3 @@
+[submodule "kit6502"]
+	path = kit6502
+	url = https://github.com/KITTY-6502/kit6502.git
