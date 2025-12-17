@@ -12,20 +12,20 @@
 .byte 'echo  '; .word cECHO
 .byte $00
 _cPING
-  lda 'p'; jsr [$FF03]
-  lda 'o'; jsr [$FF03]
-  lda 'n'; jsr [$FF03]
-  lda 'g'; jsr [$FF03]
-  lda NL; jsr [$FF03]  # newline
+  lda 'p'; jsr [COUT]
+  lda 'o'; jsr [COUT]
+  lda 'n'; jsr [COUT]
+  lda 'g'; jsr [COUT]
+  lda NL; jsr [COUT]
 rts
 _cECHO
-  jsr [$FF09]
+  jsr [CMDIN]
   __loop
   phx; phy
-    lda <$00+X>; jsr [$FF03]
+    lda <$00+X>; jsr [COUT]
   ply; plx
   inc X; dec Y; bne (loop)
   __done
-  lda NL; jsr [$FF03]
+  lda NL; jsr [COUT]
 rts
 .pad [$E000]
