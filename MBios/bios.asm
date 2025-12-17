@@ -99,16 +99,31 @@ _INIT
   #lda TestCmdTable.lo; sta <EXTRATBL+0>
   #lda TestCmdTable.hi; sta <EXTRATBL+1>
   
+  __CartRunCheck
   # Check for CART-RUN
-  lda [$C000]; cmp 'C'; bne (MAIN)
-  lda [$C001]; cmp 'A'; bne (MAIN)
-  lda [$C002]; cmp 'R'; bne (MAIN)
-  lda [$C003]; cmp 'T'; bne (MAIN)
-  lda [$C004]; cmp '-'; bne (MAIN)
-  lda [$C005]; cmp 'R'; bne (MAIN)
-  lda [$C006]; cmp 'U'; bne (MAIN)
-  lda [$C007]; cmp 'N'; bne (MAIN)
+  lda [$C000]; cmp 'C'; bne (done)
+  lda [$C001]; cmp 'A'; bne (done)
+  lda [$C002]; cmp 'R'; bne (done)
+  lda [$C003]; cmp 'T'; bne (done)
+  lda [$C004]; cmp '-'; bne (done)
+  lda [$C005]; cmp 'R'; bne (done)
+  lda [$C006]; cmp 'U'; bne (done)
+  lda [$C007]; cmp 'N'; bne (done)
     jsr [$C008]
+  ___done
+  __CartCmdCheck
+  # Check for CART-CMD
+  lda [$C000]; cmp 'C'; bne (done)
+  lda [$C001]; cmp 'A'; bne (done)
+  lda [$C002]; cmp 'R'; bne (done)
+  lda [$C003]; cmp 'T'; bne (done)
+  lda [$C004]; cmp '-'; bne (done)
+  lda [$C005]; cmp 'C'; bne (done)
+  lda [$C006]; cmp 'M'; bne (done)
+  lda [$C007]; cmp 'D'; bne (done)
+    lda $08; sta <EXTRATBL+0>
+    lda $C0; sta <EXTRATBL+1>
+  ___done
     
 _MAIN
   jsr [cFILE]
@@ -180,6 +195,11 @@ _hInputH8
 	sec; rts
 	__fail
 	clc; rts
+
+_CMDIN
+  ldx Input.lo
+  ldy <InputL>
+rts
 
 _cUNKNOWN
   SPrint string_unknown
@@ -471,9 +491,10 @@ _string_new
 .pad [$FEFD]
 _FunctionTable
 jmp [[$FF00+X]]
-.word CIN
-.word COUT
-.word BEEP
+jmp [CIN]
+jmp [COUT]
+jmp [BEEP]
+jmp [CMDIN]
 
 .pad [VECTORS]
 .word NMI
