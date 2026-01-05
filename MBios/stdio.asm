@@ -258,6 +258,7 @@ _KReadINT
 rti
 
 _STDIOINIT
+  stz <ActiveFooter>
   stz <KInpPtr>
   stz <CursorColour>
   
