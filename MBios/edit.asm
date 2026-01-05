@@ -22,7 +22,7 @@ __Main
   jsr [CalcSize]
   ___poll
   jsr [CIN]; beq (poll)
-  cmp QUIT; bne (continue)
+  cmp ETX; bne (continue)
    jmp [Edit_Exit] 
   ___continue
   cmp LF; beq (lf)

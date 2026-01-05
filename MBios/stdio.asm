@@ -35,46 +35,23 @@ _FONT
 .zp KRepeat 1
 
 # Control Codes
-.val DEL $7F  # delete
+.val ETX $03  # Escape
 .val BEL $07  # bell
+.val BS  $08  # backspace
 .val LF  $0A  # line feed
 .val FF  $0C  # form feed
 .val CR  $0D  # carriage return
-.val BS  $08  # backspace
 .val CHI $10  # color highlight
 .val CNO $11  # color normal
 .val FON $12  # Footer ON
 .val FOF $13  # Footer OFF
+.val DEL $7F  # Delete
+
 
 .val ALF   $01
 .val ARI   $02
 .val AUP   $03
 .val ADW   $04
-
-# ...............................
-# :11|16|21|26|31|36|41|46|51|56:
-# :12|15|22|25|32|35|42|45|52|55:
-# :13|14|23|24|33|34|43|44|53|54:
-# ...............................
-
-# SHIFT
-# ................................
-# : Q  W  E  R  T  Y  U  I  O  P :
-# : A  S  D  F  G  H  J  K  L  en:
-# : Z  X  C  V sf al  B  N  M  sp:
-# ................................
-# ALT
-# ................................
-# : 1  2  3  4  5  6  7  8  9  0 :
-# : @  #  $  %  &  -  +  (  )  . :
-# : *  "  '  : sf al  ;  !  ?  , :
-# ................................
-# SHIFT+ALT
-# ...............................:
-# :                              :
-# : /  \  ~  ^  `  _  =  [  ]  en:
-# : <  >       sf al     {  }  sp:
-# ................................
 
 .val SPC ' '
 .val ENT LF
@@ -82,13 +59,13 @@ _FONT
 .val ALT 0
 .val HSH $23
 .val QOT $27
-.val QUIT $FF
+
 
 _KMapR1
 .byte 'q','a', 0 ,'z','s','w',0,0 # normal
 .byte 'Q','A', 0 ,'Z','S','W',0,0 # shift
 .byte '1','@', 0 ,'*',HSH,'2',0,0 # alt
-.byte QUIT,ALF,0 ,'~',ADW,AUP,0,0 # shift+alt
+.byte ETX,ALF,0 ,'~',ADW,AUP,0,0 # shift+alt
 
 _KMapR2
 .byte 'e','d','x','c','f','r',0,0 # normal
@@ -225,8 +202,8 @@ _KReadINT
     inc <CursorFlip>
     stz <CursorTime>
     ldy 7; ldx $0F
-  lda <Cursor+1>; inc A; inc A; sta <r1>
-  lda <Cursor+0>; lsr A; bcs (right)
+  lda <CursorY>; inc A; inc A; sta <r1>
+  lda <CursorX>; lsr A; bcs (right)
     ldx $F0
   ___right
   asl A; asl A; asl A; sta <r0>
@@ -340,7 +317,7 @@ _COUT
   pha
   phx; phy
   
-  lda <Cursor+0>; and %0011_1111; sta <Cursor+0>
+  lda <CursorX>; and %0011_1111; sta <CursorX>
   
   lda 25; sta <CursorTime>
   
@@ -348,8 +325,8 @@ _COUT
   __blinkcheck
   lda $01; bit <CursorFlip>; beq (notblinking)
     ldy 7; ldx $0F
-  lda <Cursor+1>; inc A; inc A; sta <r1>
-  lda <Cursor+0>; lsr A; bcs (right)
+  lda <CursorY>; inc A; inc A; sta <r1>
+  lda <CursorX>; lsr A; bcs (right)
     ldx $F0
   ___right
   asl A; asl A; asl A; sta <r0>
@@ -385,11 +362,11 @@ __fof
 rts
 __lf
   phx; phy
-  inc <Cursor+1>
+  inc <CursorY>
 jsr [ScrollFix]
 ply; plx
 __cr
-  stz <Cursor+0>
+  stz <CursorX>
   cli
 rts
 
@@ -407,15 +384,15 @@ __cno
 rts
 # DEL - Delete Character at location
 __bs
-  dec <Cursor+0>; bpl (del)
-    lda 63; sta <Cursor+0>
-    dec <Cursor+1>; bpl (del)
+  dec <CursorX>; bpl (del)
+    lda 63; sta <CursorX>
+    dec <CursorY>; bpl (del)
       #jsr [FixScrollDown]
 __del
   phx; phy
   ldy 7; ldx $F0
-  lda <Cursor+1>; inc A; inc A; sta <r1>
-  lda <Cursor+0>; lsr A; bcs (right)
+  lda <CursorY>; inc A; inc A; sta <r1>
+  lda <CursorX>; lsr A; bcs (right)
     ldx $0F
   ___right
   asl A; asl A; asl A; sta <r0>
@@ -435,14 +412,14 @@ rts
 __ff
   phy
   ldy 0
-  stz <Cursor+0>; lda 2
+  stz <CursorX>; lda 2
   ___ouloop
-  sta <Cursor+1>; lda 0
+  sta <CursorY>; lda 0
   ___inloop
     sta [<Cursor>+Y]
   inc Y; bne (inloop)
-  lda <Cursor+1>; inc A; cmp 32; bne (ouloop)
-  stz <Cursor+1>
+  lda <CursorY>; inc A; cmp 32; bne (ouloop)
+  stz <CursorY>
   stz <CursorFlip>
   ply
   cli
@@ -456,8 +433,8 @@ __charf
   jsr [ScrollFix]
   plx
   
-  lda <Cursor+1>; inc A; inc A; sta <r1>
-  lda <Cursor+0>; lsr A; bcc (left);
+  lda <CursorY>; inc A; inc A; sta <r1>
+  lda <CursorX>; lsr A; bcc (left);
   ___right
   asl A; asl A; asl A; sta <r0>
   ldy 0
@@ -469,10 +446,10 @@ __charf
   lda <CursorColour>; xor [FONT_5+X]; and $0F; ora [<r0>+Y]; sta [<r0>+Y]; inc Y
   lda <CursorColour>; xor [FONT_6+X]; and $0F; ora [<r0>+Y]; sta [<r0>+Y]; inc Y
   lda <CursorColour>; xor [FONT_7+X]; and $0F; ora [<r0>+Y]; sta [<r0>+Y]
-  lda <Cursor+0>; inc A; cmp 64; bne (noinc)
-    inc <Cursor+1>; lda 0
+  lda <CursorX>; inc A; cmp 64; bne (noinc)
+    inc <CursorY>; lda 0
   ___noinc
-  sta <Cursor+0>
+  sta <CursorX>
   jsr [ScrollFix]
   cli
 rts
@@ -487,17 +464,17 @@ rts
   lda <CursorColour>; xor [FONT_5+X]; and $F0; ora [<r0>+Y]; sta [<r0>+Y]; inc Y
   lda <CursorColour>; xor [FONT_6+X]; and $F0; ora [<r0>+Y]; sta [<r0>+Y]; inc Y
   lda <CursorColour>; xor [FONT_7+X]; and $F0; ora [<r0>+Y]; sta [<r0>+Y]
-  lda <Cursor+0>; inc A; cmp 64; bne (noinc)
-    inc <Cursor+1>; lda 0
+  lda <CursorX>; inc A; cmp 64; bne (noinc)
+    inc <CursorY>; lda 0
   ___noinc
-  sta <Cursor+0>
+  sta <CursorX>
   jsr [ScrollFix]
   cli
 rts
 
 # Scroll Function
 _ScrollFix
-  lda <Cursor+1>; sec; sbc <ActiveFooter>; cmp 30; bcs (notdone)
+  lda <CursorY>; sec; sbc <ActiveFooter>; cmp 30; bcs (notdone)
     rts
   __notdone
   #jsr [Scroll]
@@ -549,7 +526,7 @@ __loop
   stz [$1E00+X]
   inc X; beq (end); jmp [[r0]]
 __end
-  dec <Cursor+1>
+  dec <CursorY>
   cli
 rts
 
@@ -596,10 +573,27 @@ __loop
 
   inc X; beq (end); jmp [[r0]]
 __end
-  dec <Cursor+1>
+  dec <CursorY>
   cli
 rts
 
+# ----------------------------------
+# Set Cursor Position
+# X (0-63); Y (0-29)
+_SETCURSOR
+  pha
+  txa; and 63; sta <CursorX>
+  tya; and 31; cmp 30; bcc (yInRange)
+    lda 29
+  __yInRange
+  sta <CursorY>
+  pla
+rts
+_GETCURSOR
+  ldx <CursorX>
+  ldy <CursorY>
+rts
+# -------------------------------
 _HexToAscii
   # Value to convert in A
   # Results in A and X

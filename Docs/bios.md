@@ -19,6 +19,10 @@ The font is located at the start of the BIOS ROM and includes 96 ASCII character
 * `$E240-$E2BF` - Row 7
 * `$E2A0-$E2FF` - Row 8
 
+## Control Codes
+
+The MicroMicro uses the following control codes:
+
 ## Function API
 
 There is a function jump table located in page $FF00. The current functions are:
@@ -27,6 +31,24 @@ There is a function jump table located in page $FF00. The current functions are:
 * `jsr $FF03` **COUT**  - Print character in A
 * `jsr $FF06` **BEEP** - Pitched sound based on A
 * `jsr $FF09` **CMDIN** - Read Command-Line Input, returns start of string into X (zero page address), length of string into Y
+* `jsr $FF0C` **GETCURSOR** - Get Current Cursor Position in X (0-63) and Y (0-29)
+* `jsr $FF0F` **SETCURSOR** - Set Current Cursor Position using X (0-63) and Y (0-29)
+
+### Control Codes
+
+`CIN`/`COUT` use the following control codes:
+
+* `$03` **ETX** - Escape/Ctrl-C
+* `$07` **BEL** - Play a Beep
+* `$08` **BS**  - Backspace
+* `$0A` **LF**  - Newline
+* `$0C` **FF**  - Clear the screen
+* `$0D` **CR**  - Return to start of line
+* `$10` **CHI** - Turn on Highlighted Text
+* `$11` **CNO** - Turn off Highlighted Text
+* `$12` **FON** - Turn on the footer
+* `$13` **FOF** - Turn off the footer
+* `$7F` **DEL** - Erase character at cursor
 
 ## Run Carts
 

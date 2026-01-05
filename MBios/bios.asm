@@ -24,9 +24,6 @@
 
 .val MAXSIZE $6000
 
-
-
-
 .org [$E000]
   .asm stdio
   .asm edit
@@ -218,14 +215,11 @@ _cHELP
     plx
     ldy 6
     ___print
-      phy; phx; lda [CmdTable+X]; jsr [COUT]; plx; ply
+      phy; phx; lda [CmdTable+X]
+      jsr [COUT]; plx; ply
     sei; inc X; dec Y; bne (print)
     inc X; inc X
-    phx
-    #lda CR; jsr [COUT]
-    #lda LF; jsr [COUT]
-    plx
-  bra (loop)
+  bne (loop)
   ___done
   ldy 0
   __extraloop
@@ -235,15 +229,35 @@ _cHELP
     ply
     ldx 6
     ___print
-      phy;phx; lda [<EXTRATBL>+Y]; jsr [COUT]; plx; ply
+      phy;phx; lda [<EXTRATBL>+Y]
+      
+      # Reject Invalid Characters
+      beq (bad)
+      cmp $7F; bcs (bad)
+      cmp $20; bcc (bad)
+      jsr [COUT]; plx; ply
     sei; inc Y; dec X; bne (print)
     inc Y; inc Y
-  bra (extraloop)
+  bne (extraloop)
   __done
   cli
   lda CR; jsr [COUT]
   lda LF; jsr [COUT]
 rts
+__bad
+  plx; ply
+  cli
+  ldx 0
+  
+  ___send
+  lda [error+X]; beq (done); phx; jsr [COUT]; plx; inc X; cpx 64; bne (send)
+  ___done
+  
+  lda EXTRATBL.lo+1; sta <EXTRATBL>
+  lda 0; sta <EXTRATBL+1>
+rts
+___error
+.byte CR,LF, CHI,' ERROR ',CNO,' bad cartridge',CR,LF,$00
 #jmp [MAIN]
 
 
@@ -414,10 +428,12 @@ _CmdRun
   __loop
     ldy 0
     lda [CmdTable+X]; bne (continue)
+    __unknown
       jmp [ExtraCmdRun]
     __continue
     
     __MatchLoop
+      cpx 6; beq (checkmatch)
       lda [CmdTable+X]; cmp ' '; beq (checkmatch)
       cmp [Input+Y]; bne (next)
     inc X; inc Y; bra (MatchLoop)
@@ -425,7 +441,7 @@ _CmdRun
     	lda [Input+Y]; beq (matched)
     	cmp ' '; beq (matched)
     ___next
-      clc; txa; and %1111_1000; adc 8; tax; bra (loop)
+      clc; txa; and %1111_1000; adc 8; tax; bcs (unknown); bra (loop)
     
     # We Matched
     ___matched
@@ -436,10 +452,12 @@ _ExtraCmdRun
   __loop
     ldx 0
     lda [<EXTRATBL>+Y]; bne (continue)
+    __unknown
       jmp [cUNKNOWN]
     __continue
     
     __MatchLoop
+      cpx 6; beq (checkmatch)
       lda [<EXTRATBL>+Y]; cmp ' '; beq (checkmatch)
       cmp [Input+X]; bne (next)
     inc X; inc Y; bra (MatchLoop)
@@ -447,7 +465,7 @@ _ExtraCmdRun
     	lda [Input+X]; beq (matched)
     	cmp ' '; beq (matched)
     ___next
-      clc; tya; and %1111_1000; adc 8; tay; bra (loop)
+    clc; tya; and %1111_1000; adc 8; tay; bcs (unknown); bra (loop)
     
     # We Matched
     ___matched
@@ -493,10 +511,12 @@ _string_new
 .pad [$FEFD]
 _FunctionTable
 jmp [[$FF00+X]]
-jmp [CIN]
-jmp [COUT]
-jmp [BEEP]
-jmp [CMDIN]
+jmp [CIN]         # FF00
+jmp [COUT]        # FF03
+jmp [BEEP]        # FF06
+jmp [CMDIN]       # FF09
+jmp [GETCURSOR]   # FF0C
+jmp [SETCURSOR]   # FF0F
 
 .pad [VECTORS]
 .word NMI
