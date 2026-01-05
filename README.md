@@ -125,7 +125,7 @@ The 8k bios provides a simple command line operating system with the following c
 | Command               | Description                                    |
 | --------------------- | ---------------------------------------------- |
 | `help`                | Lists all available commands                   |
-| `clear`               | Clears the display			                       |
+| `clear`               | Clears the display                             |
 | `file`                | The Size and Name of the currently loaded file |
 | `new`                 | Create a new file                              |
 | `name <name>`         | Rename the current file                        |
@@ -136,6 +136,8 @@ The 8k bios provides a simple command line operating system with the following c
 | `peek <addr> <bytes>` | Read contents of Memory                        |
 | `poke <addr> <bytes>` | Write to Memory                                |
 | `prun <addr>`         | Run a Machine Code Subroutine                  |
+
+More info on the bios can be found [here](Docs/bios.md)
 
 # Changelog
 
