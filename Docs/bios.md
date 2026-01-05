@@ -23,10 +23,10 @@ The font is located at the start of the BIOS ROM and includes 96 ASCII character
 
 There is a function jump table located in page $FF00. The current functions are:
 
-* `$FF00` **CIN**  - Returns input character into A (0 if none)
-* `$FF03` **COUT**  - Print character in A
-* `$FF06` **BEEP** - Pitched sound based on A
-* `$FF09` **CMDIN** - Read Command-Line Input, returns start of string into X (zero page address), length of string into Y
+* `jsr $FF00` **CIN**  - Returns input character into A (0 if none)
+* `jsr $FF03` **COUT**  - Print character in A
+* `jsr $FF06` **BEEP** - Pitched sound based on A
+* `jsr $FF09` **CMDIN** - Read Command-Line Input, returns start of string into X (zero page address), length of string into Y
 
 ## Run Carts
 
