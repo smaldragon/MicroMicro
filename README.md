@@ -56,17 +56,17 @@ This non-linear format was chosen to speed up the rendering of characters to the
 The state of the keyboard and joysticks can be read at the following addresses:
 
 ```
-+---------------------+-------    +-------------------+
-| Name                | Address   | Value             |
-+---------------------+-----------+-------------------+
-| Keyboard Col 1      |    9FFE   | Q  A  Z  X  S  W  |
-| Keyboard Col 2      |    9FFD   | E  D  C  V  F  R  | 
-| Keyboard Col 3      |    9FFB   | T  G  sh al H  Y  |
-| Keyboard Col 4      |    9FF7   | U  J  B  N  K  I  |
-| Keyboard Col 5      |    9FEF   | O  L  M  sp en P  |
-| Joystick 1          |    8FFF   | up dw lf ri tl tr |
-| Joystick 2          |    97FF   | up dw lf ri tl tr |
-+---------------------+-----------+-------------------+
++---------------------+----------+-------------------------+
+| Name                | Address  | Value (bits 0-5)        |
++---------------------+----------+-------------------------+
+| Keyboard Col 1      |   9FFE   |  Q   A  Shf  z   S   W  |
+| Keyboard Col 2      |   9FFD   |  E   D   X   C   F   R  |
+| Keyboard Col 3      |   9FFB   |  T   G   V   B   H   Y  |
+| Keyboard Col 4      |   9FF7   |  U   J   N   M   K   I  |
+| Keyboard Col 5      |   9FEF   |  O   L  SPC ALT ENT  P  |
+| Joystick 1          |   8FFF   |  ↑   ↓   ←   →   L   R  |
+| Joystick 2          |   97FF   |  ↑   ↓   ←   →   L   R  |
++---------------------+----------+-------------------------+
 ```
 
 ## Beeper and Tape Interface
@@ -81,7 +81,7 @@ The Beeper is a 1bit register that is used for both audio generation and to load
 | Toggle Beeper       | FFFF (write)| 0000 0000 |
 +---------------------+-------------+-----------+
 T = Tape Input
-B = Beeper State
+B = Beeper State (top 2 bits of input register)
 ```
 
 The tape interface is a 4-pin trs connector that be connected directly to a computer using an appropriate aux cable.

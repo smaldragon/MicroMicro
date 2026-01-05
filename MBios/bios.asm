@@ -14,27 +14,29 @@
 .zp rA
 .zp rB
 .zp rC
-.zp rD
-.zp rE
-.zp rF
+.zp EXTRATBL 2
+.zp CPUFreq
 .zp IRQ 3
 .zp NMI 3
-.zp EXTRATBL 2
+
 #.zp FSIZE 2 using BotPTR for now instead
-.zp FNAME 9
-.zp RUNCODE 4
+
 
 .val MAXSIZE $6000
 
-.val InputSize 63
-.zp Input InputSize+1
-.zp InputL
+
 
 
 .org [$E000]
   .asm stdio
   .asm edit
   .asm lang
+  
+.zp FNAME 9
+.zp RUNCODE 4
+.val InputSize 63
+.zp Input InputSize+1
+.zp InputL
 _RESET
   sei; cld
   lda $40; sta <NMI>        # RTI
@@ -61,7 +63,7 @@ _RESET
   clc
   cli
   wai
-  sta <rF>
+  sta <CPUFreq>
   
   jsr [STDIOINIT]
   
@@ -86,7 +88,7 @@ _INIT
   lda string1.lo; sta <r4>
   lda string1.hi; sta <r5>
   jsr [SOUT]
-  clc; lda <rF>; lsr A; lsr A; adc $30; jsr [COUT]
+  clc; lda <CPUFreq>; lsr A; lsr A; adc $30; jsr [COUT]
   lda string2.lo; sta <r4>
   lda string2.hi; sta <r5>
   jsr [SOUT]
@@ -476,7 +478,7 @@ _CmdTable
 #    .byte $00
 
 _string1
-.byte FF, CHI,' MicroMicro ',CNO, " 24KiB "
+.byte FF, CHI,' MicroMicro ',CNO, FOF, " 24KiB "
 _string2
 .byte 'MHz',CR,LF,CR,LF,$00
 _string_help

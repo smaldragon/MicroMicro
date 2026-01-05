@@ -14,7 +14,7 @@ _FONT
 .val FONT_6 FONT+576-32
 .val FONT_7 FONT+672-32
 
-.asm otla
+#.asm otla
 
 .zp Cursor  2
 	.val CursorX Cursor+0
@@ -22,7 +22,11 @@ _FONT
 .zp CursorFlip 1
 .zp CursorTime 1
 .zp CursorColour 1
-.zp KInp    14
+.zp ActiveFooter 1
+
+.val KInpSize 4
+.zp KInp    KInpSize
+
 .zp KInpPtr 1
 .zp KLast   5
 .zp KCur    5
@@ -39,6 +43,8 @@ _FONT
 .val BS  $08  # backspace
 .val CHI $10  # color highlight
 .val CNO $11  # color normal
+.val FON $12  # Footer ON
+.val FOF $13  # Footer OFF
 
 .val ALF   $01
 .val ARI   $02
@@ -50,12 +56,7 @@ _FONT
 # :12|15|22|25|32|35|42|45|52|55:
 # :13|14|23|24|33|34|43|44|53|54:
 # ...............................
-# NORMAL
-# ................................
-# : q  w  e  r  t  y  u  i  o  p :
-# : a  s  d  f  g  h  j  k  l  en:
-# : z  x  c  v sf al  b  n  m  sp:
-# ................................
+
 # SHIFT
 # ................................
 # : Q  W  E  R  T  Y  U  I  O  P :
@@ -69,8 +70,8 @@ _FONT
 # : *  "  '  : sf al  ;  !  ?  , :
 # ................................
 # SHIFT+ALT
-# ................................
-# :                  dl:
+# ...............................:
+# :                              :
 # : /  \  ~  ^  `  _  =  [  ]  en:
 # : <  >       sf al     {  }  sp:
 # ................................
@@ -105,7 +106,7 @@ _KMapR4
 .byte 'u','j','n','m','k','i',0,0 # normal
 .byte 'U','J','N','M','K','I',0,0 # shift
 .byte '7','+','?','!','(','8',0,0 # alt
-.byte  0 ,'>','/','\','[', 0 ,0,0 # shift+alt
+.byte  0 ,'=','/','\','[', 0 ,0,0 # shift+alt
 
 _KMapR5
 .byte 'o','l',SPC, 0 ,ENT,'p',0,0 # normal
@@ -133,14 +134,14 @@ _KRowRead
   lda <r2>; xor <r3>; and <r2>; sta <r2>
   
   lda 6; sta <r3>
-  ldx <KInpPtr>; cpx 8; beq (return)
+  ldx <KInpPtr>; cpx KInpSize; beq (return)
   ldy <KMod>
   __loop
     lsr <r2>
     lda [<r0>+Y]
     beq (notpressed); bcc (notpressed)
       # pressed logic goes here
-      inc X; sta <KInp-1+X>; cpx 8; beq (return)
+      inc X; sta <KInp-1+X>; cpx KInpSize; beq (return)
     __notpressed
     inc Y
   dec <r3>; bne (loop)
@@ -271,6 +272,7 @@ rts
 # ----------------------------------------------------------------
 # Pitched Beep
 _BEEP
+  phx; phy
   # Frequency is based on rF, so the value will be constant
   .val belLength 100
   pha
@@ -278,7 +280,7 @@ _BEEP
   ldy belLength
   __ouloop
     stz [$FFFF]
-    ldx <rF>
+    ldx <CPUFreq>
     __inloop
       pla; pha
       __ininloop
@@ -286,6 +288,7 @@ _BEEP
     dec X; bne (inloop)
   dec Y; bne (ouloop)
   pla
+  ply; plx
   cli
 rts
 
@@ -294,11 +297,19 @@ rts
 # ----------------------------------------------------------------
 # Character Input from keyboard
 _CIN
+  phx
+  #phx; phy
   ldx <KInpPtr>; cpx 0; beq (none)
-    dec <KInpPtr>; lda <KInp-1+X>; rts  
+    dec <KInpPtr>; lda <KInp-1+X>; 
+    plx
+    ora 0
+    #ply; plx; 
+    rts  
   __none
+  plx
   lda 0
   #txa
+  #ply; plx
 rts
 .macro SPrint
     lda {0}.lo; sta <r4>
@@ -326,6 +337,7 @@ rts
 # Write Character to terminal
 _COUT
   pha
+  phx; phy
   
   lda <Cursor+0>; and %0011_1111; sta <Cursor+0>
   
@@ -346,6 +358,7 @@ _COUT
   __notblinking
   stz <CursorFlip>
   
+  ply; plx
   pla
   cmp DEL; beq (del)
   cmp BEL; beq (bel)
@@ -355,25 +368,41 @@ _COUT
   cmp FF;  beq (ff)
   cmp CHI; beq (chi)
   cmp CNO; beq (cno)
+  cmp FON; beq (fon)
+  cmp FOF; beq (fof)
+  cmp $7F; bcs (invalid)
   cmp 32;  bcs (char)
+  ___invalid
 cli; rts
+__bel
+  jmp [belf]
+__fon
+  lda $FF; sta <ActiveFooter>
+rts
+__fof
+  stz <ActiveFooter>
+rts
 __lf
+  phx; phy
   inc <Cursor+1>
 jsr [ScrollFix]
+ply; plx
 __cr
   stz <Cursor+0>
   cli
 rts
 
 __char
-jmp [charf]
+pha; phx; phy
+jsr [charf]
+ply; plx; pla
+
+cli; rts
 __chi
   lda $ff; sta <CursorColour>
-  cli
 rts
 __cno
   stz <CursorColour>
-  cli
 rts
 # DEL - Delete Character at location
 __bs
@@ -382,6 +411,7 @@ __bs
     dec <Cursor+1>; bpl (del)
       #jsr [FixScrollDown]
 __del
+  phx; phy
   ldy 7; ldx $F0
   lda <Cursor+1>; inc A; inc A; sta <r1>
   lda <Cursor+0>; lsr A; bcs (right)
@@ -392,14 +422,17 @@ __del
     txa; and [<r0>+Y]; sta [<r0>+Y]
   dec Y; bpl (loop)
   cli
+  ply; plx
 rts
 # BEL - Bell, plays a short sound
-__bel
+__belf
   lda 48
   jmp [BEEP]
+rts
 
 # FF - Form Feed, clears screen
 __ff
+  phy
   ldy 0
   stz <Cursor+0>; lda 2
   ___ouloop
@@ -410,20 +443,19 @@ __ff
   lda <Cursor+1>; inc A; cmp 32; bne (ouloop)
   stz <Cursor+1>
   stz <CursorFlip>
+  ply
   cli
 rts
 __charf
   sei
-  pha
-  jsr [del]
-  pla
-  tax
-  lda <Cursor+1>; cmp 30; bcc (cont)
-    phx; jsr [ScrollFix]; pla
-    bra (charf)
-  __cont
   
-  inc A; inc A; sta <r1>
+  pha; jsr [del]; pla
+  
+  tax; phx
+  jsr [ScrollFix]
+  plx
+  
+  lda <Cursor+1>; inc A; inc A; sta <r1>
   lda <Cursor+0>; lsr A; bcc (left);
   ___right
   asl A; asl A; asl A; sta <r0>
@@ -440,6 +472,7 @@ __charf
     inc <Cursor+1>; lda 0
   ___noinc
   sta <Cursor+0>
+  jsr [ScrollFix]
   cli
 rts
   ___left
@@ -457,99 +490,114 @@ rts
     inc <Cursor+1>; lda 0
   ___noinc
   sta <Cursor+0>
+  jsr [ScrollFix]
   cli
 rts
 
 # Scroll Function
 _ScrollFix
-  lda <Cursor+1>; cmp 30; bcs (notdone)
+  lda <Cursor+1>; sec; sbc <ActiveFooter>; cmp 30; bcs (notdone)
     rts
   __notdone
-  jsr [Scroll]
-_Scroll
-  lda 031; sta <r0>
-  lda $00; sta <r1>
-  lda $01; sta <r2>
-_ScrollCustom
-  php; sei
+  #jsr [Scroll]
+  # Setup scroll start point, scroll bottom line
+  lda MoveTextUp_loop.lo; sta <r0>
+  lda MoveTextUp_loop.hi; sta <r1>
+  lda <ActiveFooter>; asl A
+_MoveTextUp
+  sei
+  ldx 0
+__loop
+  lda [$0300+X]; sta [$0200+X]
+  lda [$0400+X]; sta [$0300+X]
+  lda [$0500+X]; sta [$0400+X]
+  lda [$0600+X]; sta [$0500+X]
+  lda [$0700+X]; sta [$0600+X]
+  lda [$0800+X]; sta [$0700+X]
+  lda [$0900+X]; sta [$0800+X]
+  lda [$0A00+X]; sta [$0900+X]
   
-  lda <r0>; pha
-  lda <r1>; inc A; inc A; pha
-  lda 0; jsr [COUT]
+  lda [$0B00+X]; sta [$0A00+X]
+  lda [$0C00+X]; sta [$0B00+X]
+  lda [$0D00+X]; sta [$0C00+X]
+  lda [$0E00+X]; sta [$0D00+X]
+  lda [$0F00+X]; sta [$0E00+X]
+  lda [$1000+X]; sta [$0F00+X]
+  lda [$1100+X]; sta [$1000+X]
+  lda [$1200+X]; sta [$1100+X]
   
+  lda [$1300+X]; sta [$1200+X]
+  lda [$1400+X]; sta [$1300+X]
+  lda [$1500+X]; sta [$1400+X]
+  lda [$1600+X]; sta [$1500+X]
+  lda [$1700+X]; sta [$1600+X]
+  lda [$1800+X]; sta [$1700+X]
+  lda [$1900+X]; sta [$1800+X]
+  lda [$1A00+X]; sta [$1900+X]
+  
+  lda [$1B00+X]; sta [$1A00+X]
+  lda [$1C00+X]; sta [$1B00+X]
+  lda [$1D00+X]; sta [$1C00+X]
+  lda [$1E00+X]; sta [$1D00+X]
+  
+  bcs (skipfooter)
+  lda [$1F00+X]; sta [$1E00+X]
+  stz [$1F00+X]
+  inc X; beq (end); jmp [[r0]]
+  __skipfooter
+  stz [$1E00+X]
+  inc X; beq (end); jmp [[r0]]
+__end
   dec <Cursor+1>
-  # Fill Zero Page Pointers
-  
-  ldy $02
-  ply; pla; sta <r0>
-  
-  __mainloop
-  lda $F0
-  ldx 63
-  __fill
-    sty <$C0+X>; dec X
-    sta <$C0+X>; dec X
-    
-    pha
-    tya; clc; adc <r2>
-    sta <$C0+X>; dec X
-    pla
-    sta <$C0+X>
-    sec; sbc $10
-  dec X; bpl (fill)
-  phy; ldy $0F
-  __loop
-    lda [<$C0>+Y]; sta [<$C2>+Y]
-    lda [<$C4>+Y]; sta [<$C6>+Y]
-    lda [<$C8>+Y]; sta [<$CA>+Y]
-    lda [<$CC>+Y]; sta [<$CE>+Y]
-
-    lda [<$D0>+Y]; sta [<$D2>+Y]
-    lda [<$D4>+Y]; sta [<$D6>+Y]
-    lda [<$D8>+Y]; sta [<$DA>+Y]
-    lda [<$DC>+Y]; sta [<$DE>+Y]
-
-    lda [<$E0>+Y]; sta [<$E2>+Y]
-    lda [<$E4>+Y]; sta [<$E6>+Y]
-    lda [<$E8>+Y]; sta [<$EA>+Y]
-    lda [<$EC>+Y]; sta [<$EE>+Y]
-
-    lda [<$F0>+Y]; sta [<$F2>+Y]
-    lda [<$F4>+Y]; sta [<$F6>+Y]
-    lda [<$F8>+Y]; sta [<$FA>+Y]
-    lda [<$FC>+Y]; sta [<$FE>+Y]
-    
-  dec Y; bpl (loop)
-  pla; clc; adc <r2>; tay; cpy <r0>; bne (mainloop)
-  # Empty Remaining Line
-  lda 0
-  phy; ldy $0F
-  __zeroloop
-    sta [<$C0>+Y]
-    sta [<$C4>+Y]
-    sta [<$C8>+Y]
-    sta [<$CC>+Y]
-
-    sta [<$D0>+Y]
-    sta [<$D4>+Y]
-    sta [<$D8>+Y]
-    sta [<$DC>+Y]
-    
-    sta [<$E0>+Y]
-    sta [<$E4>+Y]
-    sta [<$E8>+Y]
-    sta [<$EC>+Y]
-
-    sta [<$F0>+Y]
-    sta [<$F4>+Y]
-    sta [<$F8>+Y]
-    sta [<$FC>+Y]
-    
-  dec Y; bpl (zeroloop)
-  ply
-  plp
+  cli
 rts
-#jmp [SlowScroll]
+
+_MoveTextDown
+  sei
+  lda <ActiveFooter>; asl A
+  ldx 0
+__loop
+  bcs (skipfooter)
+  lda [$1E00+X]; sta [$1F00+X]
+  ___skipfooter
+  lda [$1D00+X]; sta [$1E00+X]
+  lda [$1C00+X]; sta [$1D00+X]
+  lda [$1B00+X]; sta [$1C00+X]
+  lda [$1A00+X]; sta [$1B00+X]
+  lda [$1900+X]; sta [$1A00+X]
+  lda [$1800+X]; sta [$1900+X]
+  lda [$1700+X]; sta [$1800+X]
+
+  lda [$1600+X]; sta [$1700+X]
+  lda [$1500+X]; sta [$1600+X]
+  lda [$1400+X]; sta [$1500+X]
+  lda [$1300+X]; sta [$1400+X]
+  lda [$1200+X]; sta [$1300+X]
+  lda [$1100+X]; sta [$1200+X]
+  lda [$1000+X]; sta [$1100+X]
+  lda [$0F00+X]; sta [$1000+X]
+
+  lda [$0E00+X]; sta [$0F00+X]
+  lda [$0D00+X]; sta [$0E00+X]
+  lda [$0C00+X]; sta [$0D00+X]
+  lda [$0B00+X]; sta [$0C00+X]
+  lda [$0A00+X]; sta [$0B00+X]
+  lda [$0900+X]; sta [$0A00+X]
+  lda [$0800+X]; sta [$0900+X]
+  lda [$0700+X]; sta [$0800+X]
+
+  lda [$0600+X]; sta [$0700+X]
+  lda [$0500+X]; sta [$0600+X]
+  lda [$0400+X]; sta [$0500+X]
+  lda [$0300+X]; sta [$0400+X]
+  lda [$0200+X]; sta [$0300+X]
+  stz [$0200+X]
+
+  inc X; beq (end); jmp [[r0]]
+__end
+  dec <Cursor+1>
+  cli
+rts
 
 _HexToAscii
   # Value to convert in A
@@ -649,3 +697,9 @@ __tableHi
 .byte 10000.hi, 1000.hi, 100.hi, 10.hi, 1.hi
 __tableLo
 .byte 10000.lo, 1000.lo, 100.lo, 10.lo, 1.lo
+
+_FileOUT
+rts
+
+_FileIN
+rts

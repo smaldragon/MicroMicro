@@ -5,6 +5,7 @@
 .zp TopPTR 2
 _Edit
 __Init
+  lda FON; jsr [COUT]
   lda FF; jsr [COUT]
   ldx 0; lda $FF
   ___loop
@@ -36,8 +37,6 @@ __Main
   __noinc
   jsr [COUT]
   jsr [UpdateCurLine]
-  lda <Cursor+1>; cmp 29; bcc (noscroll)
-  lda 30; sta <r0>; stz <r1>; lda 1; sta <r2>; jsr [ScrollCustom]
   __noscroll
 bra (Main)
 __alf
@@ -168,6 +167,8 @@ __CalcSize
   
   lda <Cursor+0>; pha
   lda <Cursor+1>; pha
+
+  lda FOF; jsr [COUT]
   
   lda 58; sta <Cursor+0>
   lda 29; sta <Cursor+1>
@@ -179,6 +180,8 @@ __CalcSize
   
   pla; sta <Cursor+1>
   pla; sta <Cursor+0>
+
+  lda FON; jsr [COUT]
 rts
 __New
   lda MEMTOP.lo; sta <TopPTR+0>
