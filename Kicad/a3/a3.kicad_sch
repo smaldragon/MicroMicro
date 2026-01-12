@@ -5336,6 +5336,177 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Connector_Generic:Conn_01x03"
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "J"
+				(at 0 5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_01x03"
+				(at 0 -5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "connector"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "Connector*:*_1x??_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "Conn_01x03_1_1"
+				(rectangle
+					(start -1.27 3.81)
+					(end 1.27 -3.81)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(rectangle
+					(start -1.27 2.667)
+					(end 0 2.413)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 0.127)
+					(end 0 -0.127)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start -1.27 -2.413)
+					(end 0 -2.667)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at -5.08 2.54 0)
+					(length 3.81)
+					(name "Pin_1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 3.81)
+					(name "Pin_2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -5.08 -2.54 0)
+					(length 3.81)
+					(name "Pin_3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Connector_Generic:Conn_02x03_Odd_Even"
 			(pin_names
 				(offset 1.016)
@@ -13357,6 +13528,12 @@
 		(uuid "6bd16ca7-61de-446e-968e-80a5ad274231")
 	)
 	(junction
+		(at 207.01 156.21)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "80c7ca4e-9bdb-47ff-a6d1-220f78d6bbaf")
+	)
+	(junction
 		(at 185.42 134.62)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -15024,7 +15201,17 @@
 	)
 	(wire
 		(pts
-			(xy 207.01 161.29) (xy 207.01 153.67)
+			(xy 207.01 156.21) (xy 207.01 161.29)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "135fc52b-ae8b-4f3a-b6d2-5e06563db581")
+	)
+	(wire
+		(pts
+			(xy 207.01 153.67) (xy 207.01 156.21)
 		)
 		(stroke
 			(width 0)
@@ -15234,7 +15421,7 @@
 	)
 	(wire
 		(pts
-			(xy 229.87 153.67) (xy 214.63 153.67)
+			(xy 237.49 153.67) (xy 214.63 153.67)
 		)
 		(stroke
 			(width 0)
@@ -15411,6 +15598,26 @@
 			(type default)
 		)
 		(uuid "2e120774-98a1-4d51-b297-c8ff400bf6ea")
+	)
+	(wire
+		(pts
+			(xy 222.25 157.48) (xy 222.25 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2e1d1283-8599-44c0-b3d9-692e6ff6f510")
+	)
+	(wire
+		(pts
+			(xy 224.79 156.21) (xy 207.01 156.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "30213e44-d5c8-4255-94c0-7291e75249f1")
 	)
 	(wire
 		(pts
@@ -16584,16 +16791,6 @@
 	)
 	(wire
 		(pts
-			(xy 219.71 148.59) (xy 227.33 148.59)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "83588b29-62a9-4ca0-bca4-92d4345da7ec")
-	)
-	(wire
-		(pts
 			(xy 118.11 39.37) (xy 118.11 48.26)
 		)
 		(stroke
@@ -17452,6 +17649,16 @@
 		)
 		(uuid "baaea745-6230-4049-89a4-98caa9b03ee8")
 	)
+	(wire
+		(pts
+			(xy 219.71 157.48) (xy 219.71 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bc24c3de-95b1-4549-ab37-7aafdd55e4d8")
+	)
 	(bus
 		(pts
 			(xy 203.2 27.94) (xy 203.2 30.48)
@@ -17761,6 +17968,16 @@
 			(type default)
 		)
 		(uuid "d14e6023-0e05-4408-954d-141116b3548e")
+	)
+	(wire
+		(pts
+			(xy 222.25 148.59) (xy 227.33 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d1655dd1-be7f-463c-8906-aa35e923c8e6")
 	)
 	(wire
 		(pts
@@ -18294,7 +18511,7 @@
 	)
 	(wire
 		(pts
-			(xy 229.87 153.67) (xy 229.87 157.48)
+			(xy 237.49 153.67) (xy 237.49 157.48)
 		)
 		(stroke
 			(width 0)
@@ -18381,6 +18598,16 @@
 			(type default)
 		)
 		(uuid "fd249f6c-831f-4a31-9821-fbed4ce4f181")
+	)
+	(wire
+		(pts
+			(xy 224.79 157.48) (xy 224.79 156.21)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fd2d841e-667a-4fe4-a0d3-64d7d95d6e61")
 	)
 	(wire
 		(pts
@@ -19773,7 +20000,7 @@
 		(uuid "91c3ae6b-0ad0-4eb9-91fc-2bcaaea9b3da")
 	)
 	(label "Speaker"
-		(at 229.87 157.48 180)
+		(at 237.49 157.48 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -24709,7 +24936,7 @@
 	(symbol
 		(lib_name "GND_7")
 		(lib_id "power:GND")
-		(at 229.87 160.02 0)
+		(at 237.49 160.02 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -24718,7 +24945,7 @@
 		(fields_autoplaced yes)
 		(uuid "512bfb86-bef5-4669-a753-d3db10b17b3f")
 		(property "Reference" "#PWR049"
-			(at 229.87 166.37 0)
+			(at 237.49 166.37 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -24727,7 +24954,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 229.8701 163.83 90)
+			(at 237.4901 163.83 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -24737,7 +24964,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 229.87 160.02 0)
+			(at 237.49 160.02 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -24746,7 +24973,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 229.87 160.02 0)
+			(at 237.49 160.02 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -24755,7 +24982,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 229.87 160.02 0)
+			(at 237.49 160.02 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -27955,7 +28182,7 @@
 	)
 	(symbol
 		(lib_id "Device:Speaker")
-		(at 234.95 157.48 0)
+		(at 242.57 157.48 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -27963,7 +28190,7 @@
 		(dnp no)
 		(uuid "951171e7-a3e0-4d48-99a0-af6f79c05810")
 		(property "Reference" "LS1"
-			(at 239.522 155.956 0)
+			(at 247.142 155.956 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -27973,7 +28200,7 @@
 			)
 		)
 		(property "Value" "Speaker"
-			(at 230.886 152.4 0)
+			(at 238.506 152.4 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -27984,7 +28211,7 @@
 			)
 		)
 		(property "Footprint" "Buzzer_Beeper:MagneticBuzzer_Kingstate_KCG0601"
-			(at 234.95 162.56 0)
+			(at 242.57 162.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -27993,7 +28220,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 234.696 158.75 0)
+			(at 242.316 158.75 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -28002,7 +28229,7 @@
 			)
 		)
 		(property "Description" "Speaker"
-			(at 234.95 157.48 0)
+			(at 242.57 157.48 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -31938,6 +32165,79 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector_Generic:Conn_01x03")
+		(at 222.25 162.56 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "f0f39472-ad49-4e71-b463-a77cd5c0a626")
+		(property "Reference" "J8"
+			(at 227.33 161.2899 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Conn_01x03"
+			(at 227.33 163.8299 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+			(at 222.25 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 222.25 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 222.25 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "2f40241b-d771-4af9-8fff-718227851ef3")
+		)
+		(pin "2"
+			(uuid "3288ae49-c89c-46e8-bf5d-2894b2420ddc")
+		)
+		(pin "3"
+			(uuid "c63715de-0639-4deb-98f4-c59be22cad4a")
+		)
+		(instances
+			(project ""
+				(path "/fc9f0664-12ec-44ef-b3db-0b33514ae060"
+					(reference "J8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_name "GND_1")
 		(lib_id "power:GND")
 		(at 20.32 128.27 0)
@@ -32498,7 +32798,7 @@
 			)
 		)
 		(instances
-			(project "a2"
+			(project "a3"
 				(path "/fc9f0664-12ec-44ef-b3db-0b33514ae060"
 					(page "2")
 				)
